@@ -1,8 +1,7 @@
 package net.team33.random;
 
-import java.math.BigInteger;
-
-public class Random {
+@SuppressWarnings({"unused", "ClassNamePrefixedWithPackageName"})
+public final class Random {
 
     private final java.util.Random backing = new java.util.Random();
 
@@ -14,20 +13,10 @@ public class Random {
     }
 
     public final boolean nextBoolean() {
-        return next(false, true);
+        return backing.nextBoolean();
     }
 
-    public final int nextInteger(final int min, final int limit) {
-        new BigInteger(Integer.SIZE, backing);
-        return backing.nextInt();
-    }
-
-    @SafeVarargs
-    public final <T> T next(final T... values) {
-        return values[backing.nextInt(values.length)];
-    }
-
-    public static class Builder {
+    public static final class Builder {
         private Builder() {
         }
 
