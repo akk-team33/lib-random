@@ -1,5 +1,7 @@
 package net.team33.patterns;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -7,32 +9,61 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+@SuppressWarnings("ClassWithTooManyMethods")
 public final class Random {
 
-    private static final String DEFAULT_CHAR_POOL = "abcdefghijklmnopqrstuvwxyz,ABCDEFGHIJKLMNOPQRSTUVWXYZ.012456789";
-
+    private static final String DEFAULT_CHAR_POOL = "abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKLMNOPQRSTUVWXYZ.012456789";
+    public final Basic basic = new Basic();
     private final java.util.Random backing = new java.util.Random();
     private final Functions functions;
-    private final StringBounds stringBounds;
+    private final Bounds stringBounds;
+    private final Bounds arrayBounds;
 
     private Random(final Builder builder) {
         functions = new Functions(builder);
         stringBounds = builder.stringBounds;
+        arrayBounds = builder.arrayBounds;
     }
 
     public static Builder builder() {
         return new Builder();
     }
 
-    public final <T> T next(final Class<T> resultClass) {
-        return functions.get(resultClass).apply(this);
+    public static Bounds bounds(final int min, final int max) {
+        return new Bounds(min, max);
     }
 
-    /**
-     * @see java.util.Random#nextBoolean()
-     */
+    public final Array array() {
+        return array(arrayBounds);
+    }
+
+    public final Array array(final Bounds bounds) {
+        return new Array(bounds);
+    }
+
+    public final <T> T next(final Class<T> resultClass) {
+        if (resultClass.isArray()) {
+            return resultClass.cast(array().raw(resultClass.getComponentType()));
+        } else {
+            return functions.get(resultClass).apply(this);
+        }
+    }
+
     public final boolean nextBoolean() {
         return backing.nextBoolean();
+    }
+
+    public final boolean nextBoolean(final boolean[] pool) {
+        return pool[nextInt(pool.length)];
+    }
+
+    public final short nextShort() {
+        //noinspection NumericCastThatLosesPrecision
+        return (short) backing.nextInt();
+    }
+
+    public final short nextShort(final short[] pool) {
+        return pool[nextInt(pool.length)];
     }
 
     /**
@@ -81,12 +112,17 @@ public final class Random {
         return nextString(stringBounds);
     }
 
-    public String nextString(final StringBounds bounds) {
-        final char[] result = new char[bounds.length(this)];
-        for (int i = 0; i < result.length; ++i) {
-            result[i] = bounds.nextChar(this);
+    public String nextString(final Bounds bounds) {
+        final int length = actual(bounds);
+        final char[] result = new char[length];
+        for (int i = 0; i < length; ++i) {
+            result[i] = DEFAULT_CHAR_POOL.charAt(nextInt(DEFAULT_CHAR_POOL.length()));
         }
         return new String(result);
+    }
+
+    private int actual(final Bounds bounds) {
+        return bounds.minLength + backing.nextInt(bounds.maxLength - bounds.minLength);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -124,7 +160,8 @@ public final class Random {
 
         @SuppressWarnings("rawtypes")
         private final Map<Class, Function> suppliers = new HashMap<>(0);
-        private StringBounds stringBounds = new StringBounds(1, 16, DEFAULT_CHAR_POOL);
+        private Bounds stringBounds = bounds(1, 16);
+        private Bounds arrayBounds = bounds(1, 4);
 
         private Builder() {
             put(Boolean.class, Random::nextBoolean);
@@ -145,6 +182,8 @@ public final class Random {
             put(Character.TYPE, random -> (char) random.nextInt());
             put(String.class, Random::nextString);
             put(Date.class, random -> new Date(random.nextLong()));
+            put(BigInteger.class, random -> BigInteger.valueOf(random.nextLong()));
+            put(BigDecimal.class, random -> BigDecimal.valueOf(random.nextDouble()));
         }
 
         public <T> Builder put(final Class<T> resultClass, final Function<Random, T> function) {
@@ -152,8 +191,17 @@ public final class Random {
             return this;
         }
 
-        public Builder setStringBounds(final StringBounds stringBounds) {
-            this.stringBounds = stringBounds;
+        /**
+         * Specifies the {@link Bounds} to be used by {@link Random#nextString()}
+         * (in contrast to {@link Random#nextString(Bounds)}).
+         */
+        public Builder setStringBounds(final Bounds bounds) {
+            stringBounds = bounds;
+            return this;
+        }
+
+        public Builder setArrayBounds(final Bounds bounds) {
+            arrayBounds = bounds;
             return this;
         }
 
@@ -162,24 +210,76 @@ public final class Random {
         }
     }
 
-    public static class StringBounds {
+    /**
+     * Use {@link Random#bounds(int, int)} to get an instance.
+     */
+    public static final class Bounds {
 
         public final int minLength;
         public final int maxLength;
-        public final String charPool;
 
-        public StringBounds(final int minLength, final int maxLength, final String charPool) {
+        private Bounds(final int minLength, final int maxLength) {
             this.minLength = minLength;
             this.maxLength = maxLength;
-            this.charPool = charPool;
+        }
+    }
+
+    public class Basic {
+    }
+
+    public final class Array {
+
+        private final Bounds bounds;
+
+        private Array(final Bounds bounds) {
+            this.bounds = bounds;
         }
 
-        private int length(final Random random) {
-            return minLength + random.nextInt(maxLength - minLength);
+        public final boolean[] nextBoolean() {
+            return (boolean[]) raw(Boolean.TYPE);
         }
 
-        private char nextChar(final Random random) {
-            return charPool.charAt(random.nextInt(charPool.length()));
+        public final byte[] nextByte() {
+            return (byte[]) raw(Byte.TYPE);
+        }
+
+        public final short[] nextShort() {
+            return (short[]) raw(Short.TYPE);
+        }
+
+        public final int[] nextInt() {
+            return (int[]) raw(Integer.TYPE);
+        }
+
+        public final long[] nextLong() {
+            return (long[]) raw(Long.TYPE);
+        }
+
+        public final float[] nextFloat() {
+            return (float[]) raw(Float.TYPE);
+        }
+
+        public final double[] nextDouble() {
+            return (double[]) raw(Double.TYPE);
+        }
+
+        public final char[] nextChar() {
+            return (char[]) raw(Character.TYPE);
+        }
+
+        public final <T> T[] next(final Class<T> elementClass) {
+            //noinspection unchecked
+            return (T[]) raw(elementClass);
+        }
+
+        @SuppressWarnings("unchecked")
+        private Object raw(final Class<?> elementClass) {
+            final int length = actual(bounds);
+            final Object result = java.lang.reflect.Array.newInstance(elementClass, length);
+            for (int index = 0; index < length; ++index) {
+                java.lang.reflect.Array.set(result, index, Random.this.next(elementClass));
+            }
+            return result;
         }
     }
 }
