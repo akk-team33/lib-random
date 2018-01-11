@@ -1,5 +1,6 @@
 package net.team33.patterns;
 
+import net.team33.patterns.test.Recursive;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -11,7 +12,10 @@ import java.util.Date;
 @SuppressWarnings("ClassNamePrefixedWithPackageName")
 public class RandomTest {
 
-    private final Random random = Random.builder().build();
+    private final Random random = Random.builder()
+            .put(Recursive.class, rnd -> new Recursive(rnd.next(Recursive.class)))
+            .setMaxDepth(3)
+            .build();
 
     @Test
     public final void next() {
@@ -20,13 +24,25 @@ public class RandomTest {
                 Boolean.TYPE, Boolean.class, Byte.TYPE, Byte.class, Short.TYPE, Short.class,
                 Integer.TYPE, Integer.class, Long.TYPE, Long.class, Float.TYPE, Float.class, Double.TYPE, Double.class,
                 Character.TYPE, Character.class, String.class, Date.class,
+                BigInteger.class, BigDecimal.class,
+                Recursive.class,
                 // Arrays ...
                 boolean[].class, Boolean[].class, byte[].class, Byte[].class, short[].class, Short[].class,
                 int[].class, Integer[].class, long[].class, Long[].class, float[].class, Float[].class,
                 double[].class, Double[].class, char[].class, Character[].class, String[].class, Date[].class,
-                BigInteger[].class, BigDecimal[].class)) {
+                BigInteger[].class, BigDecimal[].class,
+                Recursive[].class)) {
             Assert.assertNotNull(random.next(rClass));
         }
+    }
+
+    @Test
+    public final void recursive() {
+        final Recursive recursive1 = random.next(Recursive.class);
+        Assert.assertNotNull(recursive1);
+        Assert.assertNotNull(recursive1.getChild());
+        Assert.assertNotNull(recursive1.getChild().getChild());
+        Assert.assertNull(recursive1.getChild().getChild().getChild());
     }
 
     @Test
@@ -34,32 +50,47 @@ public class RandomTest {
         final Random.Bounds bounds = Random.bounds(1, 16);
         final Random subject = Random.builder().setArrayBounds(bounds).build();
 
-        final boolean[] booleans = subject.array().nextBoolean();
+        final boolean[] booleans = subject.array.nextBoolean();
         Assert.assertTrue((bounds.minLength <= booleans.length) && (booleans.length < bounds.maxLength));
 
-        final byte[] bytes = subject.array().nextByte();
+        final byte[] bytes = subject.array.nextByte();
         Assert.assertTrue((bounds.minLength <= bytes.length) && (bytes.length < bounds.maxLength));
 
-        final short[] shorts = subject.array().nextShort();
+        final short[] shorts = subject.array.nextShort();
         Assert.assertTrue((bounds.minLength <= shorts.length) && (shorts.length < bounds.maxLength));
 
-        final int[] ints = subject.array().nextInt();
+        final int[] ints = subject.array.nextInt();
         Assert.assertTrue((bounds.minLength <= ints.length) && (ints.length < bounds.maxLength));
 
-        final long[] longs = subject.array().nextLong();
+        final long[] longs = subject.array.nextLong();
         Assert.assertTrue((bounds.minLength <= longs.length) && (longs.length < bounds.maxLength));
 
-        final float[] floats = subject.array().nextFloat();
+        final float[] floats = subject.array.nextFloat();
         Assert.assertTrue((bounds.minLength <= floats.length) && (floats.length < bounds.maxLength));
 
-        final double[] doubles = subject.array().nextDouble();
+        final double[] doubles = subject.array.nextDouble();
         Assert.assertTrue((bounds.minLength <= doubles.length) && (doubles.length < bounds.maxLength));
 
-        final char[] chars = subject.array().nextChar();
+        final char[] chars = subject.array.nextChar();
         Assert.assertTrue((bounds.minLength <= chars.length) && (chars.length < bounds.maxLength));
 
-        final String[] strings = subject.array().next(String.class);
+        final String[] strings = subject.array.next(String.class);
         Assert.assertTrue((bounds.minLength <= strings.length) && (strings.length < bounds.maxLength));
+    }
+
+    @Test
+    public final void select() {
+        final boolean[] bools = {true, true, true};
+        Assert.assertTrue(random.select.next(bools));
+
+        final byte[] bytes = {3, 3, 3, 3};
+        Assert.assertEquals(3, random.select.next(bytes));
+
+        final short[] shorts = {278, 278, 278};
+        Assert.assertEquals(278, random.select.next(shorts));
+
+        final int[] ints = {70000, 70000, 70000};
+        Assert.assertEquals(70000, random.select.next(ints));
     }
 
     @Test

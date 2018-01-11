@@ -2,27 +2,38 @@ package net.team33.patterns;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 @SuppressWarnings("ClassWithTooManyMethods")
 public final class Random {
 
     private static final String DEFAULT_CHAR_POOL = "abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKLMNOPQRSTUVWXYZ.012456789";
+
+    @SuppressWarnings("PublicField")
     public final Basic basic = new Basic();
+    @SuppressWarnings("PublicField")
+    public final Selector select = new Selector();
+    @SuppressWarnings("PublicField")
+    public final Array array;
     private final java.util.Random backing = new java.util.Random();
     private final Functions functions;
     private final Bounds stringBounds;
-    private final Bounds arrayBounds;
+    private final int maxDepth;
 
     private Random(final Builder builder) {
         functions = new Functions(builder);
         stringBounds = builder.stringBounds;
-        arrayBounds = builder.arrayBounds;
+        array = new Array(builder.arrayBounds);
+        maxDepth = builder.maxDepth;
     }
 
     public static Builder builder() {
@@ -33,20 +44,27 @@ public final class Random {
         return new Bounds(min, max);
     }
 
-    public final Array array() {
-        return array(arrayBounds);
-    }
-
     public final Array array(final Bounds bounds) {
         return new Array(bounds);
     }
 
     public final <T> T next(final Class<T> resultClass) {
-        if (resultClass.isArray()) {
-            return resultClass.cast(array().raw(resultClass.getComponentType()));
+        if (isMaxDepthExceeded(Thread.currentThread().getStackTrace(), "next")) {
+            return null;
+        } else if (resultClass.isArray()) {
+            return resultClass.cast(array.raw(resultClass.getComponentType()));
         } else {
             return functions.get(resultClass).apply(this);
         }
+    }
+
+    private boolean isMaxDepthExceeded(final StackTraceElement[] trace, final String methodName) {
+        return Stream.of(trace)
+                .filter(element -> getClass().getCanonicalName().equals(element.getClassName()))
+                .filter(element -> methodName.equals(element.getMethodName()))
+                .skip(maxDepth)
+                .findAny()
+                .isPresent();
     }
 
     public final boolean nextBoolean() {
@@ -162,6 +180,7 @@ public final class Random {
         private final Map<Class, Function> suppliers = new HashMap<>(0);
         private Bounds stringBounds = bounds(1, 16);
         private Bounds arrayBounds = bounds(1, 4);
+        private int maxDepth = 5;
 
         private Builder() {
             put(Boolean.class, Random::nextBoolean);
@@ -178,15 +197,15 @@ public final class Random {
             put(Float.TYPE, Random::nextFloat);
             put(Double.class, Random::nextDouble);
             put(Double.TYPE, Random::nextDouble);
-            put(Character.class, random -> (char) random.nextInt());
-            put(Character.TYPE, random -> (char) random.nextInt());
+            put(Character.class, random -> random.select.next(DEFAULT_CHAR_POOL.toCharArray()));
+            put(Character.TYPE, random -> random.select.next(DEFAULT_CHAR_POOL.toCharArray()));
             put(String.class, Random::nextString);
             put(Date.class, random -> new Date(random.nextLong()));
             put(BigInteger.class, random -> BigInteger.valueOf(random.nextLong()));
             put(BigDecimal.class, random -> BigDecimal.valueOf(random.nextDouble()));
         }
 
-        public <T> Builder put(final Class<T> resultClass, final Function<Random, T> function) {
+        public final <T> Builder put(final Class<T> resultClass, final Function<Random, T> function) {
             suppliers.put(resultClass, function);
             return this;
         }
@@ -195,13 +214,18 @@ public final class Random {
          * Specifies the {@link Bounds} to be used by {@link Random#nextString()}
          * (in contrast to {@link Random#nextString(Bounds)}).
          */
-        public Builder setStringBounds(final Bounds bounds) {
+        public final Builder setStringBounds(final Bounds bounds) {
             stringBounds = bounds;
             return this;
         }
 
-        public Builder setArrayBounds(final Bounds bounds) {
+        public final Builder setArrayBounds(final Bounds bounds) {
             arrayBounds = bounds;
+            return this;
+        }
+
+        public final Builder setMaxDepth(final int maxDepth) {
+            this.maxDepth = maxDepth;
             return this;
         }
 
@@ -280,6 +304,55 @@ public final class Random {
                 java.lang.reflect.Array.set(result, index, Random.this.next(elementClass));
             }
             return result;
+        }
+    }
+
+    @SuppressWarnings("OverloadedVarargsMethod")
+    public class Selector {
+
+        public final boolean next(final boolean... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final byte next(final byte... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final short next(final short... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final int next(final int... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final long next(final long... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final float next(final float... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final double next(final double... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final char next(final char... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        @SafeVarargs
+        public final <T> T next(final T... pool) {
+            return pool[backing.nextInt(pool.length)];
+        }
+
+        public final <T> T next(final List<T> pool) {
+            return pool.get(backing.nextInt(pool.size()));
+        }
+
+        public final <T> T next(final Collection<T> pool) {
+            return next(new ArrayList<>(pool));
         }
     }
 }
