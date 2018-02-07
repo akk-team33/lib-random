@@ -47,7 +47,13 @@ public class RandomXTest {
                 int[].class, Integer[].class, long[].class, Long[].class, float[].class, Float[].class,
                 double[].class, Double[].class, char[].class, Character[].class, String[].class, Date[].class,
                 BigInteger[].class, BigDecimal[].class,
-                Recursive[].class)) {
+                Recursive[].class,
+                // Arrays of arrays ...
+                boolean[][].class, Boolean[][].class, byte[][].class, Byte[][].class, short[][].class, Short[][].class,
+                int[][].class, Integer[][].class, long[][].class, Long[][].class, float[][].class, Float[][].class,
+                double[][].class, Double[][].class, char[][].class, Character[][].class, String[][].class,
+                Date[][].class, BigInteger[][].class, BigDecimal[][].class,
+                Recursive[][].class)) {
 
             final Object result = subject.next(rClass);
             assertNotNull(result);

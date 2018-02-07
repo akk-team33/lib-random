@@ -10,28 +10,36 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import static java.lang.reflect.Array.newInstance;
-import static java.lang.reflect.Array.set;
 import static java.util.Collections.unmodifiableMap;
 
 /**
  * A {@link RandomX} is thread-safe and immutable.
+ *
+ * To get an instance use {@link Builder#build()}.
  */
 @SuppressWarnings({"MethodMayBeStatic", "ClassWithOnlyPrivateConstructors", "unused", "InnerClassMayBeStatic", "FieldCanBeLocal"})
 public class RandomX {
 
     private final Functions functions;
     private final Map<Class<?>, Integer> maxDepth;
+    private final Bounds bounds;
 
     private RandomX(final Builder builder) {
         functions = new Functions(builder);
         maxDepth = unmodifiableMap(new HashMap<>(builder.maxDepth));
+        bounds = builder.bounds;
     }
 
+    /**
+     * Retrieves a new {@link Builder}.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Retrieves a new {@link Generator}.
+     */
     public final Generator generator() {
         return new Generator();
     }
@@ -73,100 +81,17 @@ public class RandomX {
     }
 
     /**
-     * Provides some methods to generate random arrays.
-     * To get an instance use {@link Generator#array}.
-     */
-    public static class Array {
-
-        private final Generator generator;
-
-        private Array(final Generator generator) {
-            this.generator = generator;
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code boolean} values.
-         */
-        public final boolean[] nextBoolean() {
-            return (boolean[]) nextRaw(Boolean.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code byte} values.
-         */
-        public final byte[] nextByte() {
-            return (byte[]) nextRaw(Byte.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code short} values.
-         */
-        public final short[] nextShort() {
-            return (short[]) nextRaw(Short.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code int} values.
-         */
-        public final int[] nextInt() {
-            return (int[]) nextRaw(Integer.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code long} values.
-         */
-        public final long[] nextLong() {
-            return (long[]) nextRaw(Long.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code float} values.
-         */
-        public final float[] nextFloat() {
-            return (float[]) nextRaw(Float.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code double} values.
-         */
-        public final double[] nextDouble() {
-            return (double[]) nextRaw(Double.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated {@code char} values.
-         */
-        public final char[] nextChar() {
-            return (char[]) nextRaw(Character.TYPE);
-        }
-
-        /**
-         * Retrieves an array of random length filled with randomly generated instances of the given
-         * {@code elementClass}.
-         */
-        public final <T> T[] next(final Class<T> elementClass) {
-            //noinspection unchecked
-            return (T[]) nextRaw(elementClass);
-        }
-
-        private Object nextRaw(final Class<?> elementClass) {
-            final int length = 1 + generator.simple.nextInt(16);
-            final Object result = newInstance(elementClass, length);
-            for (int index = 0; index < length; ++index) {
-                set(result, index, generator.next(elementClass));
-            }
-            return result;
-        }
-    }
-
-    /**
      * A {@link Builder} is mutable and not thread-safe.
+     *
+     * To get an instance use {@link RandomX#builder()}.
      */
     public static class Builder {
 
         @SuppressWarnings("rawtypes")
         private final Map<Class<?>, Function> suppliers = new HashMap<>(0);
         private final Map<Class<?>, Integer> maxDepth = new HashMap<>(0);
+
+        private Bounds bounds = new Bounds(1, 16);
 
         @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
@@ -214,6 +139,19 @@ public class RandomX {
             return this;
         }
 
+        /**
+         * Sets the {@link Bounds} for generation of arrays and collections.
+         * <p>
+         * By default the values are [1..16].
+         */
+        public final Builder setBounds(final Bounds bounds) {
+            this.bounds = bounds;
+            return this;
+        }
+
+        /**
+         * Retrieves a new {@link RandomX}.
+         */
         public final RandomX build() {
             return new RandomX(this);
         }
@@ -221,6 +159,8 @@ public class RandomX {
 
     /**
      * A {@link Generator} is not thread-safe but formally immutable.
+     *
+     * To get an Instance use {@link RandomX#generator()}.
      */
     public class Generator {
 
@@ -229,12 +169,13 @@ public class RandomX {
          */
         @SuppressWarnings("PublicField")
         public final java.util.Random simple = new Random();
+
         /**
          * Provides some methods to generate random arrays.
          */
         @SuppressWarnings({"PublicField", "ThisEscapedInObjectConstruction"})
-        public final Array array = new Array(this);
-        // private final List<Class> stack = new LinkedList<>();
+        public final ArrayGenerator array = new ArrayGenerator(this);
+
         private final Stack limited = new Limited();
         private final Stack dummy = new Dummy();
 
@@ -252,13 +193,17 @@ public class RandomX {
                 if (stack.reached(resultClass)) {
                     return null;
                 } else if (resultClass.isArray()) {
-                    return resultClass.cast(array.nextRaw(resultClass.getComponentType()));
+                    return resultClass.cast(array.rawOf(resultClass.getComponentType()));
                 } else {
                     return functions.get(resultClass).apply(this);
                 }
             } finally {
                 stack.remove(resultClass);
             }
+        }
+
+        final Bounds getBounds() {
+            return bounds;
         }
 
         private Stack stack(final Class<?> resultClass) {
