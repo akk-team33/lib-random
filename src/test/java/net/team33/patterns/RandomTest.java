@@ -8,14 +8,17 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.function.Supplier;
 
 @SuppressWarnings("ClassNamePrefixedWithPackageName")
 public class RandomTest {
 
-    private final Random random = Random.builder()
+    private static final Supplier<Random> RANDOM = Random.builder()
             .put(Recursive.class, rnd -> new Recursive(rnd.next(Recursive.class)))
             .setMaxDepth(3)
             .build();
+
+    private final Random random = RANDOM.get();
 
     @Test
     public final void next() {
@@ -48,33 +51,33 @@ public class RandomTest {
     @Test
     public final void array() {
         final Random.Bounds bounds = Random.bounds(1, 16);
-        final Random subject = Random.builder().setArrayBounds(bounds).build();
+        final Random subject = Random.builder().setArrayBounds(bounds).build().get();
 
-        final boolean[] booleans = subject.array.nextBoolean();
+        final boolean[] booleans = subject.array.ofBoolean();
         Assert.assertTrue((bounds.minLength <= booleans.length) && (booleans.length < bounds.maxLength));
 
-        final byte[] bytes = subject.array.nextByte();
+        final byte[] bytes = subject.array.ofByte();
         Assert.assertTrue((bounds.minLength <= bytes.length) && (bytes.length < bounds.maxLength));
 
-        final short[] shorts = subject.array.nextShort();
+        final short[] shorts = subject.array.ofShort();
         Assert.assertTrue((bounds.minLength <= shorts.length) && (shorts.length < bounds.maxLength));
 
-        final int[] ints = subject.array.nextInt();
+        final int[] ints = subject.array.ofInt();
         Assert.assertTrue((bounds.minLength <= ints.length) && (ints.length < bounds.maxLength));
 
-        final long[] longs = subject.array.nextLong();
+        final long[] longs = subject.array.ofLong();
         Assert.assertTrue((bounds.minLength <= longs.length) && (longs.length < bounds.maxLength));
 
-        final float[] floats = subject.array.nextFloat();
+        final float[] floats = subject.array.ofFloat();
         Assert.assertTrue((bounds.minLength <= floats.length) && (floats.length < bounds.maxLength));
 
-        final double[] doubles = subject.array.nextDouble();
+        final double[] doubles = subject.array.ofDouble();
         Assert.assertTrue((bounds.minLength <= doubles.length) && (doubles.length < bounds.maxLength));
 
-        final char[] chars = subject.array.nextChar();
+        final char[] chars = subject.array.ofChar();
         Assert.assertTrue((bounds.minLength <= chars.length) && (chars.length < bounds.maxLength));
 
-        final String[] strings = subject.array.next(String.class);
+        final String[] strings = subject.array.of(String.class);
         Assert.assertTrue((bounds.minLength <= strings.length) && (strings.length < bounds.maxLength));
     }
 

@@ -11,50 +11,80 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * A {@link Random} is not thread-safe but formally immutable.
+ * <p>
+ * To get an Instance use {@link Builder#build()}.
+ */
 @SuppressWarnings("ClassWithTooManyMethods")
 public final class Random {
 
     private static final String DEFAULT_CHAR_POOL = "abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKLMNOPQRSTUVWXYZ.012456789";
 
+    /**
+     * Provides some basic methods to generate random values.
+     */
     @SuppressWarnings("PublicField")
-    public final Basic basic = new Basic();
+    public final java.util.Random basic = new java.util.Random();
+
+    /**
+     * Provides a {@link Selector}.
+     */
     @SuppressWarnings("PublicField")
     public final Selector select = new Selector();
-    @SuppressWarnings("PublicField")
-    public final Array array;
-    private final java.util.Random backing = new java.util.Random();
-    private final Functions functions;
-    private final Bounds stringBounds;
-    private final int maxDepth;
 
-    private Random(final Builder builder) {
-        functions = new Functions(builder);
-        stringBounds = builder.stringBounds;
-        array = new Array(builder.arrayBounds);
-        maxDepth = builder.maxDepth;
+    /**
+     * Provides an {@link ArrayGenerator} using the default {@link Bounds}.
+     *
+     * @see #array(Bounds)
+     * @see Builder#setArrayBounds(Bounds)
+     */
+    @SuppressWarnings("PublicField")
+    public final ArrayGenerator array;
+
+    private final Core core;
+
+    private Random(final Core core) {
+        this.core = core;
+        array = new ArrayGenerator(core.arrayBounds);
     }
 
+    /**
+     * Retrieves a new {@link Builder}.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Retrieves new {@link Bounds}.
+     */
     public static Bounds bounds(final int min, final int max) {
         return new Bounds(min, max);
     }
 
-    public final Array array(final Bounds bounds) {
-        return new Array(bounds);
+    /**
+     * Retrieves an {@link ArrayGenerator} using the given {@link Bounds bounds}.
+     *
+     * @see #array
+     */
+    public final ArrayGenerator array(final Bounds bounds) {
+        return new ArrayGenerator(bounds);
     }
 
+    /**
+     * Retrieves a new, randomly generated instance of the given class.
+     */
     public final <T> T next(final Class<T> resultClass) {
         if (isMaxDepthExceeded(Thread.currentThread().getStackTrace(), "next")) {
             return null;
         } else if (resultClass.isArray()) {
             return resultClass.cast(array.raw(resultClass.getComponentType()));
         } else {
-            return functions.get(resultClass).apply(this);
+            return core.functions.get(resultClass).apply(this);
         }
     }
 
@@ -62,85 +92,59 @@ public final class Random {
         return Stream.of(trace)
                 .filter(element -> getClass().getCanonicalName().equals(element.getClassName()))
                 .filter(element -> methodName.equals(element.getMethodName()))
-                .skip(maxDepth)
+                .skip(core.maxDepth)
                 .findAny()
                 .isPresent();
     }
 
-    public final boolean nextBoolean() {
-        return backing.nextBoolean();
-    }
-
-    public final boolean nextBoolean(final boolean[] pool) {
-        return pool[nextInt(pool.length)];
-    }
-
     public final short nextShort() {
         //noinspection NumericCastThatLosesPrecision
-        return (short) backing.nextInt();
-    }
-
-    public final short nextShort(final short[] pool) {
-        return pool[nextInt(pool.length)];
-    }
-
-    /**
-     * @see java.util.Random#nextInt()
-     */
-    public final int nextInt() {
-        return backing.nextInt();
-    }
-
-    /**
-     * @see java.util.Random#nextInt()
-     */
-    public final int nextInt(final int bound) {
-        return backing.nextInt(bound);
+        return (short) basic.nextInt();
     }
 
     /**
      * @see java.util.Random#nextLong()
      */
     public final long nextLong() {
-        return backing.nextLong();
+        return basic.nextLong();
     }
 
     /**
      * @see java.util.Random#nextFloat()
      */
     public final float nextFloat() {
-        return backing.nextFloat();
+        return basic.nextFloat();
     }
 
     /**
      * @see java.util.Random#nextDouble()
      */
     public final double nextDouble() {
-        return backing.nextDouble();
+        return basic.nextDouble();
     }
 
     /**
      * @see java.util.Random#nextGaussian()
      */
     public final double nextGaussian() {
-        return backing.nextGaussian();
+        return basic.nextGaussian();
     }
 
     public final String nextString() {
-        return nextString(stringBounds);
+        return nextString(core.stringBounds);
     }
 
     public String nextString(final Bounds bounds) {
         final int length = actual(bounds);
         final char[] result = new char[length];
         for (int i = 0; i < length; ++i) {
-            result[i] = DEFAULT_CHAR_POOL.charAt(nextInt(DEFAULT_CHAR_POOL.length()));
+            result[i] = DEFAULT_CHAR_POOL.charAt(basic.nextInt(DEFAULT_CHAR_POOL.length()));
         }
         return new String(result);
     }
 
     private int actual(final Bounds bounds) {
-        return bounds.minLength + backing.nextInt(bounds.maxLength - bounds.minLength);
+        return bounds.minLength + basic.nextInt(bounds.maxLength - bounds.minLength);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -173,7 +177,11 @@ public final class Random {
         }
     }
 
-    @SuppressWarnings("NumericCastThatLosesPrecision")
+    /**
+     * A {@link Builder} is mutable and not thread-safe.
+     *
+     * To get an instance use {@link Random#builder()}.
+     */
     public static final class Builder {
 
         @SuppressWarnings("rawtypes")
@@ -182,15 +190,16 @@ public final class Random {
         private Bounds arrayBounds = bounds(1, 4);
         private int maxDepth = 5;
 
+        @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
-            put(Boolean.class, Random::nextBoolean);
-            put(Boolean.TYPE, Random::nextBoolean);
-            put(Byte.class, random -> (byte) random.nextInt());
-            put(Byte.TYPE, random -> (byte) random.nextInt());
-            put(Short.class, random -> (short) random.nextInt());
-            put(Short.TYPE, random -> (short) random.nextInt());
-            put(Integer.class, Random::nextInt);
-            put(Integer.TYPE, Random::nextInt);
+            put(Boolean.class, random -> random.basic.nextBoolean());
+            put(Boolean.TYPE, random -> random.basic.nextBoolean());
+            put(Byte.class, random -> (byte) random.basic.nextInt());
+            put(Byte.TYPE, random -> (byte) random.basic.nextInt());
+            put(Short.class, random -> (short) random.basic.nextInt());
+            put(Short.TYPE, random -> (short) random.basic.nextInt());
+            put(Integer.class, random -> random.basic.nextInt());
+            put(Integer.TYPE, random -> random.basic.nextInt());
             put(Long.class, Random::nextLong);
             put(Long.TYPE, Random::nextLong);
             put(Float.class, Random::nextFloat);
@@ -229,8 +238,24 @@ public final class Random {
             return this;
         }
 
-        public final Random build() {
-            return new Random(this);
+        public final Supplier<Random> build() {
+            final Core core = new Core(this);
+            return () -> new Random(core);
+        }
+    }
+
+    private static final class Core {
+
+        private final Functions functions;
+        private final Bounds stringBounds;
+        private final Bounds arrayBounds;
+        private final int maxDepth;
+
+        private Core(final Builder builder) {
+            functions = new Functions(builder);
+            stringBounds = builder.stringBounds;
+            arrayBounds = builder.arrayBounds;
+            maxDepth = builder.maxDepth;
         }
     }
 
@@ -251,47 +276,52 @@ public final class Random {
     public class Basic {
     }
 
-    public final class Array {
+    /**
+     * Provides some methods to generate random arrays.
+     * <p>
+     * To get an instance use {@link Random#array} or {@link Random#array(Bounds)}.
+     */
+    public final class ArrayGenerator {
 
         private final Bounds bounds;
 
-        private Array(final Bounds bounds) {
+        private ArrayGenerator(final Bounds bounds) {
             this.bounds = bounds;
         }
 
-        public final boolean[] nextBoolean() {
+        public final boolean[] ofBoolean() {
             return (boolean[]) raw(Boolean.TYPE);
         }
 
-        public final byte[] nextByte() {
+        public final byte[] ofByte() {
             return (byte[]) raw(Byte.TYPE);
         }
 
-        public final short[] nextShort() {
+        public final short[] ofShort() {
             return (short[]) raw(Short.TYPE);
         }
 
-        public final int[] nextInt() {
+        public final int[] ofInt() {
             return (int[]) raw(Integer.TYPE);
         }
 
-        public final long[] nextLong() {
+        public final long[] ofLong() {
             return (long[]) raw(Long.TYPE);
         }
 
-        public final float[] nextFloat() {
+        public final float[] ofFloat() {
             return (float[]) raw(Float.TYPE);
         }
 
-        public final double[] nextDouble() {
+        public final double[] ofDouble() {
             return (double[]) raw(Double.TYPE);
         }
 
-        public final char[] nextChar() {
+        public final char[] ofChar() {
             return (char[]) raw(Character.TYPE);
         }
 
-        public final <T> T[] next(final Class<T> elementClass) {
+        public final <T> T[] of(final Class<T> elementClass) {
             //noinspection unchecked
             return (T[]) raw(elementClass);
         }
@@ -311,44 +341,44 @@ public final class Random {
     public class Selector {
 
         public final boolean next(final boolean... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final byte next(final byte... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final short next(final short... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final int next(final int... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final long next(final long... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final float next(final float... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final double next(final double... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final char next(final char... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         @SafeVarargs
         public final <T> T next(final T... pool) {
-            return pool[backing.nextInt(pool.length)];
+            return pool[basic.nextInt(pool.length)];
         }
 
         public final <T> T next(final List<T> pool) {
-            return pool.get(backing.nextInt(pool.size()));
+            return pool.get(basic.nextInt(pool.size()));
         }
 
         public final <T> T next(final Collection<T> pool) {
