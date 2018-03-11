@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * A {@link Random} is formally immutable but not thread-safe.
@@ -81,55 +80,11 @@ public final class Random {
      * Retrieves a new, randomly generated instance of the given class.
      */
     public final <T> T next(final Class<T> resultClass) {
-        if (isMaxDepthExceeded(Thread.currentThread().getStackTrace(), "next")) {
-            return null;
-        } else if (resultClass.isArray()) {
+        if (resultClass.isArray()) {
             return resultClass.cast(array.raw(resultClass.getComponentType()));
         } else {
             return core.getMethod(resultClass).apply(this);
         }
-    }
-
-    private boolean isMaxDepthExceeded(final StackTraceElement[] trace, final String methodName) {
-        return Stream.of(trace)
-                .filter(element -> getClass().getCanonicalName().equals(element.getClassName()))
-                .filter(element -> methodName.equals(element.getMethodName()))
-                .skip(core.maxDepth)
-                .findAny()
-                .isPresent();
-    }
-
-    public final short nextShort() {
-        //noinspection NumericCastThatLosesPrecision
-        return (short) basic.nextInt();
-    }
-
-    /**
-     * @see java.util.Random#nextLong()
-     */
-    public final long nextLong() {
-        return basic.nextLong();
-    }
-
-    /**
-     * @see java.util.Random#nextFloat()
-     */
-    public final float nextFloat() {
-        return basic.nextFloat();
-    }
-
-    /**
-     * @see java.util.Random#nextDouble()
-     */
-    public final double nextDouble() {
-        return basic.nextDouble();
-    }
-
-    /**
-     * @see java.util.Random#nextGaussian()
-     */
-    public final double nextGaussian() {
-        return basic.nextGaussian();
     }
 
     public final String nextString() {
@@ -156,14 +111,12 @@ public final class Random {
         private final Map<Class, Function> cache;
         private final Bounds stringBounds;
         private final Bounds arrayBounds;
-        private final int maxDepth;
 
         private Core(final Builder builder) {
             pool = Collections.unmodifiableMap(new HashMap<>(builder.suppliers));
             cache = new HashMap<>(pool.size());
             stringBounds = builder.stringBounds;
             arrayBounds = builder.arrayBounds;
-            maxDepth = builder.maxDepth;
         }
 
         private <T> Function<Random, T> getMethod(final Class<T> resultClass) {
@@ -196,7 +149,6 @@ public final class Random {
         private final Map<Class, Function> suppliers = new HashMap<>(0);
         private Bounds stringBounds = bounds(1, 16);
         private Bounds arrayBounds = bounds(1, 4);
-        private int maxDepth = 5;
 
         @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
@@ -208,18 +160,18 @@ public final class Random {
             put(Short.TYPE, random -> (short) random.basic.nextInt());
             put(Integer.class, random -> random.basic.nextInt());
             put(Integer.TYPE, random -> random.basic.nextInt());
-            put(Long.class, Random::nextLong);
-            put(Long.TYPE, Random::nextLong);
-            put(Float.class, Random::nextFloat);
-            put(Float.TYPE, Random::nextFloat);
-            put(Double.class, Random::nextDouble);
-            put(Double.TYPE, Random::nextDouble);
+            put(Long.class, random -> random.basic.nextLong());
+            put(Long.TYPE, random -> random.basic.nextLong());
+            put(Float.class, random -> random.basic.nextFloat());
+            put(Float.TYPE, random -> random.basic.nextFloat());
+            put(Double.class, random -> random.basic.nextDouble());
+            put(Double.TYPE, random -> random.basic.nextDouble());
             put(Character.class, random -> random.select.next(DEFAULT_CHAR_POOL.toCharArray()));
             put(Character.TYPE, random -> random.select.next(DEFAULT_CHAR_POOL.toCharArray()));
             put(String.class, Random::nextString);
-            put(Date.class, random -> new Date(random.nextLong()));
-            put(BigInteger.class, random -> BigInteger.valueOf(random.nextLong()));
-            put(BigDecimal.class, random -> BigDecimal.valueOf(random.nextDouble()));
+            put(Date.class, random -> new Date(random.basic.nextLong()));
+            put(BigInteger.class, random -> BigInteger.valueOf(random.basic.nextLong()));
+            put(BigDecimal.class, random -> BigDecimal.valueOf(random.basic.nextDouble()));
         }
 
         public final <T> Builder put(final Class<T> resultClass, final Function<Random, T> function) {
@@ -238,11 +190,6 @@ public final class Random {
 
         public final Builder setArrayBounds(final Bounds bounds) {
             arrayBounds = bounds;
-            return this;
-        }
-
-        public final Builder setMaxDepth(final int maxDepth) {
-            this.maxDepth = maxDepth;
             return this;
         }
 
