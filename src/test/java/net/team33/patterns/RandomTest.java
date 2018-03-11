@@ -16,7 +16,7 @@ public class RandomTest {
     private static final Supplier<Random> RANDOM = Random.builder()
             .put(Recursive.class, rnd -> new Recursive(rnd.next(Recursive.class)))
             .setMaxDepth(3)
-            .build();
+            .prepare();
 
     private final Random random = RANDOM.get();
 
@@ -51,7 +51,7 @@ public class RandomTest {
     @Test
     public final void array() {
         final Random.Bounds bounds = Random.bounds(1, 16);
-        final Random subject = Random.builder().setArrayBounds(bounds).build().get();
+        final Random subject = Random.builder().setArrayBounds(bounds).build();
 
         final boolean[] booleans = subject.array.ofBoolean();
         Assert.assertTrue((bounds.minLength <= booleans.length) && (booleans.length < bounds.maxLength));

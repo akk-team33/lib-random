@@ -1,5 +1,6 @@
 package net.team33.patterns;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -15,9 +16,10 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
- * A {@link Random} is not thread-safe but formally immutable.
- * <p>
- * To get an Instance use {@link Builder#build()}.
+ * A {@link Random} is formally immutable but not thread-safe.
+ *
+ * @see Builder#build()
+ * @see Builder#prepare()
  */
 @SuppressWarnings("ClassWithTooManyMethods")
 public final class Random {
@@ -84,7 +86,7 @@ public final class Random {
         } else if (resultClass.isArray()) {
             return resultClass.cast(array.raw(resultClass.getComponentType()));
         } else {
-            return core.functions.get(resultClass).apply(this);
+            return core.getMethod(resultClass).apply(this);
         }
     }
 
@@ -148,25 +150,31 @@ public final class Random {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static final class Functions {
+    private static final class Core {
 
         private final Map<Class, Function> pool;
         private final Map<Class, Function> cache;
+        private final Bounds stringBounds;
+        private final Bounds arrayBounds;
+        private final int maxDepth;
 
-        private Functions(final Builder builder) {
+        private Core(final Builder builder) {
             pool = Collections.unmodifiableMap(new HashMap<>(builder.suppliers));
             cache = new HashMap<>(pool.size());
+            stringBounds = builder.stringBounds;
+            arrayBounds = builder.arrayBounds;
+            maxDepth = builder.maxDepth;
         }
 
-        private <T> Function<Random, T> get(final Class<T> resultClass) {
+        private <T> Function<Random, T> getMethod(final Class<T> resultClass) {
             synchronized (cache) {
                 return Optional
                         .ofNullable(cache.get(resultClass))
-                        .orElseGet(() -> find(resultClass));
+                        .orElseGet(() -> findMethod(resultClass));
             }
         }
 
-        private Function find(final Class<?> resultClass) {
+        private Function findMethod(final Class<?> resultClass) {
             final Function result = pool.entrySet().stream()
                     .filter(entry -> resultClass.isAssignableFrom(entry.getKey()))
                     .map(Map.Entry::getValue)
@@ -238,24 +246,13 @@ public final class Random {
             return this;
         }
 
-        public final Supplier<Random> build() {
+        public final Random build() {
+            return prepare().get();
+        }
+
+        public final Supplier<Random> prepare() {
             final Core core = new Core(this);
             return () -> new Random(core);
-        }
-    }
-
-    private static final class Core {
-
-        private final Functions functions;
-        private final Bounds stringBounds;
-        private final Bounds arrayBounds;
-        private final int maxDepth;
-
-        private Core(final Builder builder) {
-            functions = new Functions(builder);
-            stringBounds = builder.stringBounds;
-            arrayBounds = builder.arrayBounds;
-            maxDepth = builder.maxDepth;
         }
     }
 
@@ -271,9 +268,6 @@ public final class Random {
             this.minLength = minLength;
             this.maxLength = maxLength;
         }
-    }
-
-    public class Basic {
     }
 
     /**
@@ -329,9 +323,9 @@ public final class Random {
         @SuppressWarnings("unchecked")
         private Object raw(final Class<?> elementClass) {
             final int length = actual(bounds);
-            final Object result = java.lang.reflect.Array.newInstance(elementClass, length);
+            final Object result = Array.newInstance(elementClass, length);
             for (int index = 0; index < length; ++index) {
-                java.lang.reflect.Array.set(result, index, Random.this.next(elementClass));
+                Array.set(result, index, next(elementClass));
             }
             return result;
         }
