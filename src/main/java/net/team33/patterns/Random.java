@@ -17,6 +17,8 @@ import java.util.function.Supplier;
 /**
  * A {@link Random} is formally immutable but not thread-safe.
  *
+ * TEST
+ *
  * @see Builder#build()
  * @see Builder#prepare()
  */
