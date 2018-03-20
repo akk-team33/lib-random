@@ -11,13 +11,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
  * A {@link Random} is formally immutable but not thread-safe.
- *
- * TEST
  *
  * @see Builder#build()
  * @see Builder#prepare()
@@ -49,6 +48,7 @@ public final class Random {
     public final ArrayGenerator array;
 
     private final Core core;
+    private final Map<Class<?>, int[]> recursionDepths = new ConcurrentHashMap<>(0);
 
     private Random(final Core core) {
         this.core = core;
@@ -82,11 +82,31 @@ public final class Random {
      * Retrieves a new, randomly generated instance of the given class.
      */
     public final <T> T next(final Class<T> resultClass) {
-        if (resultClass.isArray()) {
-            return resultClass.cast(array.raw(resultClass.getComponentType()));
-        } else {
-            return core.getMethod(resultClass).apply(this);
+        final Generation<T> generation = core.getGeneration(resultClass);
+        return (0 > generation.maxRecursionDepth)
+                ? generation.method.apply(this)
+                : nextLimited(generation);
+    }
+
+    private <T> T nextLimited(final Generation<T> generation) {
+        final int[] recursionDepth = getRecursionDepth(generation.resultClass);
+        recursionDepth[0] += 1;
+        try {
+            return (recursionDepth[0] > generation.maxRecursionDepth)
+                    ? generation.fallback
+                    : generation.method.apply(this);
+        } finally {
+            recursionDepth[0] -= 1;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private int[] getRecursionDepth(final Class<?> resultClass) {
+        return Optional.ofNullable(recursionDepths.get(resultClass)).orElseGet(() -> {
+            final int[] result = new int[1];
+            recursionDepths.put(resultClass, result);
+            return result;
+        });
     }
 
     public final String nextString() {
@@ -109,46 +129,49 @@ public final class Random {
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static final class Core {
 
-        private final Map<Class, Function> pool;
-        private final Map<Class, Function> cache;
+        private final Map<Class, Generation> pool;
+        private final Map<Class, Generation> cache;
         private final Bounds stringBounds;
         private final Bounds arrayBounds;
 
         private Core(final Builder builder) {
-            pool = Collections.unmodifiableMap(new HashMap<>(builder.suppliers));
-            cache = new HashMap<>(pool.size());
+            pool = Collections.unmodifiableMap(new HashMap<>(builder.generations));
+            cache = new ConcurrentHashMap<>(pool.size());
             stringBounds = builder.stringBounds;
             arrayBounds = builder.arrayBounds;
         }
 
-        private <T> Function<Random, T> getMethod(final Class<T> resultClass) {
-            synchronized (cache) {
-                return Optional
-                        .ofNullable(cache.get(resultClass))
-                        .orElseGet(() -> findMethod(resultClass));
-            }
-        }
-
-        private Function findMethod(final Class<?> resultClass) {
-            final Function result = pool.entrySet().stream()
-                    .filter(entry -> resultClass.isAssignableFrom(entry.getKey()))
-                    .map(Map.Entry::getValue)
-                    .findAny()
-                    .orElseThrow(() -> new IllegalStateException("no method specified for <" + resultClass + ">"));
-            cache.put(resultClass, result);
-            return result;
+        private <T> Generation<T> getGeneration(final Class<T> resultClass) {
+            return Optional.ofNullable(cache.get(resultClass)).orElseGet(() -> {
+                final Generation result;
+                if (resultClass.isArray()) {
+                    result = new Generation<>(
+                            resultClass,
+                            random -> resultClass.cast(random.array.raw(resultClass.getComponentType())),
+                            -1,
+                            null);
+                } else {
+                    result = pool.entrySet().stream()
+                            .filter(entry -> resultClass.isAssignableFrom(entry.getKey()))
+                            .map(Map.Entry::getValue)
+                            .findAny()
+                            .orElseThrow(() -> new IllegalStateException("no method specified for <" + resultClass + ">"));
+                }
+                cache.put(resultClass, result);
+                return result;
+            });
         }
     }
 
     /**
      * A {@link Builder} is mutable and not thread-safe.
-     *
+     * <p>
      * To get an instance use {@link Random#builder()}.
      */
     public static final class Builder {
 
         @SuppressWarnings("rawtypes")
-        private final Map<Class, Function> suppliers = new HashMap<>(0);
+        private final Map<Class, Generation> generations = new HashMap<>(0);
         private Bounds stringBounds = bounds(1, 16);
         private Bounds arrayBounds = bounds(1, 4);
 
@@ -176,8 +199,23 @@ public final class Random {
             put(BigDecimal.class, random -> BigDecimal.valueOf(random.basic.nextDouble()));
         }
 
-        public final <T> Builder put(final Class<T> resultClass, final Function<Random, T> function) {
-            suppliers.put(resultClass, function);
+        /**
+         * Associates a new generation method with a specific result class
+         */
+        public final <T> Builder put(final Class<T> resultClass, final Function<Random, T> method) {
+            return put(resultClass, method, -1, null);
+        }
+
+        /**
+         * Associates a new set of generation parameters with a specific result class
+         */
+        public final <T> Builder put(final Class<T> resultClass, final Function<Random, T> method,
+                                     final int recursionDepth, final T fallback) {
+            return put(new Generation<T>(resultClass, method, recursionDepth, fallback));
+        }
+
+        private <T> Builder put(final Generation<T> generation) {
+            generations.put(generation.resultClass, generation);
             return this;
         }
 
@@ -202,6 +240,22 @@ public final class Random {
         public final Supplier<Random> prepare() {
             final Core core = new Core(this);
             return () -> new Random(core);
+        }
+    }
+
+    private static final class Generation<T> {
+
+        private final Class<T> resultClass;
+        private final Function<Random, T> method;
+        private final int maxRecursionDepth;
+        private final T fallback;
+
+        private Generation(final Class<T> resultClass, final Function<Random, T> method,
+                           final int maxRecursionDepth, final T fallback) {
+            this.resultClass = resultClass;
+            this.method = method;
+            this.maxRecursionDepth = maxRecursionDepth;
+            this.fallback = fallback;
         }
     }
 
