@@ -43,28 +43,29 @@ public class RandomTest {
     }
 
     @Test
-    public final void recursive0Null() {
+    public final void nextRecursive0Null() {
         Assert.assertNull(Random.builder()
                 .put(Recursive.class, RANDOM_RECURSIVE, 0, null).build()
                 .next(Recursive.class));
     }
 
     @Test
-    public final void recursive0Empty() {
+    public final void nextRecursive0Empty() {
         Assert.assertSame(Recursive.EMPTY, Random.builder()
                 .put(Recursive.class, RANDOM_RECURSIVE, 0, Recursive.EMPTY).build()
                 .next(Recursive.class));
     }
 
     @Test(expected = StackOverflowError.class)
-    public final void recursiveFail() {
+    public final void nextRecursiveFail() {
+        //noinspection ObjectToString
         Assert.fail("Should fail but was " + Random.builder()
                 .put(Recursive.class, RANDOM_RECURSIVE).build()
                 .next(Recursive.class));
     }
 
     @Test
-    public final void recursive() {
+    public final void nextRecursive() {
         final Recursive recursive = Random.builder()
                 .put(Recursive.class, RANDOM_RECURSIVE, 3, null).build()
                 .next(Recursive.class);

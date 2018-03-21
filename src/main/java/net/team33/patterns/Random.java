@@ -82,19 +82,19 @@ public final class Random {
      * Retrieves a new, randomly generated instance of the given class.
      */
     public final <T> T next(final Class<T> resultClass) {
-        final Generation<T> generation = core.getGeneration(resultClass);
-        return (0 > generation.maxRecursionDepth)
-                ? generation.method.apply(this)
-                : nextLimited(generation);
+        final Handling<T> handling = core.getHandling(resultClass);
+        return (0 > handling.maxRecursionDepth)
+                ? handling.method.apply(this)
+                : nextLimited(handling);
     }
 
-    private <T> T nextLimited(final Generation<T> generation) {
-        final int[] recursionDepth = getRecursionDepth(generation.resultClass);
+    private <T> T nextLimited(final Handling<T> handling) {
+        final int[] recursionDepth = getRecursionDepth(handling.resultClass);
         recursionDepth[0] += 1;
         try {
-            return (recursionDepth[0] > generation.maxRecursionDepth)
-                    ? generation.fallback
-                    : generation.method.apply(this);
+            return (recursionDepth[0] > handling.maxRecursionDepth)
+                    ? handling.fallback
+                    : handling.method.apply(this);
         } finally {
             recursionDepth[0] -= 1;
         }
@@ -129,8 +129,8 @@ public final class Random {
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static final class Core {
 
-        private final Map<Class, Generation> pool;
-        private final Map<Class, Generation> cache;
+        private final Map<Class, Handling> pool;
+        private final Map<Class, Handling> cache;
         private final Bounds stringBounds;
         private final Bounds arrayBounds;
 
@@ -141,22 +141,26 @@ public final class Random {
             arrayBounds = builder.arrayBounds;
         }
 
-        private <T> Generation<T> getGeneration(final Class<T> resultClass) {
+        private static <T> Handling<T> newArrayHandling(final Class<T> resultClass) {
+            if (resultClass.isArray()) {
+                return new Handling<>(resultClass, arrayFunction(resultClass), -1, null);
+            } else {
+                throw new IllegalStateException("no method specified for <" + resultClass + ">");
+            }
+        }
+
+        private static <T> Function<Random, T> arrayFunction(final Class<T> resultClass) {
+            return random -> resultClass.cast(random.array.raw(resultClass.getComponentType()));
+        }
+
+        private <T> Handling<T> getHandling(final Class<T> resultClass) {
             return Optional.ofNullable(cache.get(resultClass)).orElseGet(() -> {
-                final Generation result;
-                if (resultClass.isArray()) {
-                    result = new Generation<>(
-                            resultClass,
-                            random -> resultClass.cast(random.array.raw(resultClass.getComponentType())),
-                            -1,
-                            null);
-                } else {
-                    result = pool.entrySet().stream()
-                            .filter(entry -> resultClass.isAssignableFrom(entry.getKey()))
-                            .map(Map.Entry::getValue)
-                            .findAny()
-                            .orElseThrow(() -> new IllegalStateException("no method specified for <" + resultClass + ">"));
-                }
+                final Handling result;
+                result = pool.entrySet().stream()
+                        .filter(entry -> resultClass.isAssignableFrom(entry.getKey()))
+                        .map(Map.Entry::getValue)
+                        .findAny()
+                        .orElseGet(() -> newArrayHandling(resultClass));
                 cache.put(resultClass, result);
                 return result;
             });
@@ -171,7 +175,7 @@ public final class Random {
     public static final class Builder {
 
         @SuppressWarnings("rawtypes")
-        private final Map<Class, Generation> generations = new HashMap<>(0);
+        private final Map<Class, Handling> generations = new HashMap<>(0);
         private Bounds stringBounds = bounds(1, 16);
         private Bounds arrayBounds = bounds(1, 4);
 
@@ -211,11 +215,11 @@ public final class Random {
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<Random, T> method,
                                      final int recursionDepth, final T fallback) {
-            return put(new Generation<T>(resultClass, method, recursionDepth, fallback));
+            return put(new Handling<T>(resultClass, method, recursionDepth, fallback));
         }
 
-        private <T> Builder put(final Generation<T> generation) {
-            generations.put(generation.resultClass, generation);
+        private <T> Builder put(final Handling<T> handling) {
+            generations.put(handling.resultClass, handling);
             return this;
         }
 
@@ -243,15 +247,15 @@ public final class Random {
         }
     }
 
-    private static final class Generation<T> {
+    private static final class Handling<T> {
 
         private final Class<T> resultClass;
         private final Function<Random, T> method;
         private final int maxRecursionDepth;
         private final T fallback;
 
-        private Generation(final Class<T> resultClass, final Function<Random, T> method,
-                           final int maxRecursionDepth, final T fallback) {
+        private Handling(final Class<T> resultClass, final Function<Random, T> method,
+                         final int maxRecursionDepth, final T fallback) {
             this.resultClass = resultClass;
             this.method = method;
             this.maxRecursionDepth = maxRecursionDepth;
