@@ -1,14 +1,17 @@
 package net.team33.patterns.test;
 
+@SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
 public class Recursive {
 
-    private final Recursive child;
+    public static final Recursive EMPTY = new Recursive(new Recursive[0]);
 
-    public Recursive(final Recursive child) {
-        this.child = child;
+    private final Recursive[] children;
+
+    public Recursive(final Recursive[] children) {
+        this.children = children;
     }
 
-    public final Recursive getChild() {
-        return child;
+    public final Recursive[] getChildren() {
+        return children;
     }
 }

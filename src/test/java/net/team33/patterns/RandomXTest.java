@@ -29,7 +29,7 @@ public class RandomXTest {
             .build();
 
     private final RandomX random = RandomX.builder()
-            .put(Recursive.class, rnd -> new Recursive(rnd.next(Recursive.class)), 3)
+            .put(Recursive.class, rnd -> new Recursive(rnd.next(Recursive[].class)), 3)
             .build();
 
     @Test
@@ -69,8 +69,8 @@ public class RandomXTest {
     public final void recursive() {
         final Recursive recursive1 = random.generator().next(Recursive.class);
         assertNotNull(recursive1);
-        assertNotNull(recursive1.getChild());
-        assertNotNull(recursive1.getChild().getChild());
-        assertNull(recursive1.getChild().getChild().getChild());
+        assertNotNull(recursive1.getChildren()[0]);
+        assertNotNull(recursive1.getChildren()[0].getChildren()[0]);
+        assertNull(recursive1.getChildren()[0].getChildren()[0].getChildren()[0]);
     }
 }
