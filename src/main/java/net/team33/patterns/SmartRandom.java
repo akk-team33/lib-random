@@ -18,17 +18,19 @@ import java.util.function.Supplier;
  * @see Builder#build()
  * @see #builder()
  */
+@SuppressWarnings("ClassWithOnlyPrivateConstructors")
 public class SmartRandom {
 
     /**
      * Provides basic random functionality through a {@link SmartRandom} instance.
      */
     @SuppressWarnings("PublicField")
-    public final BasicRandom basic = new BasicRandom();
+    public final BasicRandom basic;
 
     private final Core core;
 
     private SmartRandom(final Core core) {
+        this.basic = new BasicRandom();
         this.core = core;
     }
 
