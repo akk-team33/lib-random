@@ -1,5 +1,6 @@
 package net.team33.patterns;
 
+import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class SmartRandom {
     public final BasicRandom basic;
 
     private final Core core;
+    private Bounds arrayBounds = new Bounds(0, 16); // preliminary here
 
     private SmartRandom(final Core core) {
         this.core = core;
@@ -48,6 +50,15 @@ public class SmartRandom {
         return core
                 .getHandling(resultClass).strategy
                 .apply(this);
+    }
+
+    private Object anyArray(final Class<?> componentType) {
+        final int length = arrayBounds.actual(basic);
+        final Object result = Array.newInstance(componentType, length);
+        for (int index = 0; index < length; ++index) {
+            Array.set(result, index, any(componentType));
+        }
+        return result;
     }
 
     private <T> T anyUnlimited(final Handling<T> handling) {
@@ -116,8 +127,11 @@ public class SmartRandom {
         }
 
         private static <T> Function<SmartRandom, T> arrayFunction(final Class<T> resultClass) {
-            // TODO: return random -> resultClass.cast(random.array.raw(resultClass.getComponentType()));
-            throw new UnsupportedOperationException("not yet implemented");
+            if (resultClass.isArray()) {
+                return random -> resultClass.cast(random.anyArray(resultClass.getComponentType()));
+            } else {
+                throw new UnsupportedOperationException("not yet implemented");
+            }
         }
     }
 
