@@ -2,39 +2,59 @@ package net.team33.patterns;
 
 import java.util.Random;
 
-public class BasicRandom {
+public interface BasicRandom {
 
-    private final Random backing = new Random();
+    int anyInt();
 
-    public final void anyBytes(final byte[] bytes) {
-        backing.nextBytes(bytes);
-    }
+    int anyInt(final int bound);
 
-    public final int anyInt() {
-        return backing.nextInt();
-    }
+    long anyLong();
 
-    public final int anyInt(final int bound) {
-        return backing.nextInt(bound);
-    }
+    boolean anyBoolean();
 
-    public final long anyLong() {
-        return backing.nextLong();
-    }
+    float anyFloat();
 
-    public final boolean anyBoolean() {
-        return backing.nextBoolean();
-    }
+    double anyDouble();
 
-    public final float anyFloat() {
-        return backing.nextFloat();
-    }
+    double anyGaussian();
 
-    public final double anyDouble() {
-        return backing.nextDouble();
-    }
+    class Simple implements BasicRandom {
 
-    public final double anyGaussian() {
-        return backing.nextGaussian();
+        private final Random backing = new Random();
+
+        @Override
+        public final int anyInt() {
+            return backing.nextInt();
+        }
+
+        @Override
+        public final int anyInt(final int bound) {
+            return backing.nextInt(bound);
+        }
+
+        @Override
+        public final long anyLong() {
+            return backing.nextLong();
+        }
+
+        @Override
+        public final boolean anyBoolean() {
+            return backing.nextBoolean();
+        }
+
+        @Override
+        public final float anyFloat() {
+            return backing.nextFloat();
+        }
+
+        @Override
+        public final double anyDouble() {
+            return backing.nextDouble();
+        }
+
+        @Override
+        public final double anyGaussian() {
+            return backing.nextGaussian();
+        }
     }
 }

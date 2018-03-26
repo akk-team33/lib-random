@@ -30,8 +30,8 @@ public class SmartRandom {
     private final Core core;
 
     private SmartRandom(final Core core) {
-        this.basic = new BasicRandom();
         this.core = core;
+        this.basic = core.newBasic.get();
     }
 
     public static Builder builder() {
@@ -81,10 +81,12 @@ public class SmartRandom {
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static class Core implements Supplier<SmartRandom> {
 
+        private final Supplier<BasicRandom> newBasic;
         private final Map<Class, Handling> pool;
         private final Map<Class, Handling> cache;
 
         private Core(final Builder builder) {
+            newBasic = builder.newBasic;
             pool = Collections.unmodifiableMap(new HashMap<>(builder.handlings));
             cache = new ConcurrentHashMap<>(pool.size());
         }
@@ -129,6 +131,9 @@ public class SmartRandom {
         @SuppressWarnings("rawtypes")
         private final Map<Class, Handling> handlings = new HashMap<>(0);
 
+        @SuppressWarnings("Convert2MethodRef")
+        private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
+
         @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
             put(Boolean.TYPE, random -> random.basic.anyBoolean());
@@ -167,6 +172,11 @@ public class SmartRandom {
                                      final int maxRecursionDepth, final T fallback) {
 
             handlings.put(resultClass, new Handling<T>(resultClass, method, maxRecursionDepth, fallback));
+            return this;
+        }
+
+        public final Builder setNewBasic(final Supplier<BasicRandom> newBasic) {
+            this.newBasic = newBasic;
             return this;
         }
 
