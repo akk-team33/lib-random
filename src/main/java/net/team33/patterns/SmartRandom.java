@@ -23,10 +23,37 @@ import java.util.function.Supplier;
 public class SmartRandom {
 
     /**
-     * Provides basic random functionality through a {@link SmartRandom} instance.
+     * Defines a charset to be used for generating characters and strings
+     * if not otherwise specified through {@link Builder#setCharset(char[])}.
+     * It consists of all ASCII characters without control characters.
+     */
+    public static final String DEFAULT_CHARSET = Init.defaultCharset();
+
+    private static final class Init {
+
+        private static final char WHITESPACE = ' ';
+
+        @SuppressWarnings("NumericCastThatLosesPrecision")
+        private static String defaultCharset() {
+            final int length = 128 - WHITESPACE;
+            final char[] result = new char[length];
+            for (int index = 0; index < length; ++index) {
+                result[index] = (char) (WHITESPACE + index);
+            }
+            return new String(result);
+        }
+    }
+
+    /**
+     * Provides {@link BasicRandom} functionality through a {@link SmartRandom} instance.
      */
     @SuppressWarnings("PublicField")
     public final BasicRandom basic;
+
+    /**
+     * Provides {@link Selector} functionality through a {@link SmartRandom} instance.
+     */
+    public final Selector selector;
 
     private final Core core;
     private Bounds arrayBounds = new Bounds(0, 16); // preliminary here
@@ -34,6 +61,7 @@ public class SmartRandom {
     private SmartRandom(final Core core) {
         this.core = core;
         this.basic = core.newBasic.get();
+        this.selector = new Selector(basic);
     }
 
     public static Builder builder() {
@@ -95,11 +123,13 @@ public class SmartRandom {
         private final Supplier<BasicRandom> newBasic;
         private final Map<Class, Handling> pool;
         private final Map<Class, Handling> cache;
+        private final char[] charset;
 
         private Core(final Builder builder) {
             newBasic = builder.newBasic;
             pool = Collections.unmodifiableMap(new HashMap<>(builder.handlings));
             cache = new ConcurrentHashMap<>(pool.size());
+            charset = builder.charset.toCharArray();
         }
 
         @Override
@@ -147,6 +177,7 @@ public class SmartRandom {
 
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
+        private String charset = DEFAULT_CHARSET;
 
         @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
@@ -164,8 +195,8 @@ public class SmartRandom {
             put(Float.class, random -> random.basic.anyFloat());
             put(Double.TYPE, random -> random.basic.anyDouble());
             put(Double.class, random -> random.basic.anyDouble());
-            put(Character.TYPE, random -> (char) (32 + random.basic.anyInt(96)));
-            put(Character.class, random -> (char) (32 + random.basic.anyInt(96)));
+            put(Character.TYPE, random -> random.selector.next(random.core.charset));
+            put(Character.class, random -> random.selector.next(random.core.charset));
         }
 
         /**
@@ -191,6 +222,26 @@ public class SmartRandom {
 
         public final Builder setNewBasic(final Supplier<BasicRandom> newBasic) {
             this.newBasic = newBasic;
+            return this;
+        }
+
+        /**
+         * Defines a charset to be used for generating characters and strings.
+         *
+         * @see SmartRandom#DEFAULT_CHARSET
+         */
+        public final Builder setCharset(final char[] charset) {
+            this.charset = new String(charset);
+            return this;
+        }
+
+        /**
+         * Defines a charset to be used for generating characters and strings.
+         *
+         * @see SmartRandom#DEFAULT_CHARSET
+         */
+        public final Builder setCharset(final String charset) {
+            this.charset = charset;
             return this;
         }
 
