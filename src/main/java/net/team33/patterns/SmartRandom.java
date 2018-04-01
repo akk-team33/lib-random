@@ -53,7 +53,7 @@ public class SmartRandom {
     /**
      * Provides {@link Selector} functionality through a {@link SmartRandom} instance.
      */
-    public final Selector selector;
+    public final Selector select;
 
     private final Core core;
     private Bounds arrayBounds = new Bounds(0, 16); // preliminary here
@@ -61,7 +61,7 @@ public class SmartRandom {
     private SmartRandom(final Core core) {
         this.core = core;
         this.basic = core.newBasic.get();
-        this.selector = new Selector(basic);
+        this.select = new Selector(basic);
     }
 
     public static Builder builder() {
@@ -142,26 +142,29 @@ public class SmartRandom {
                 final Handling<T> result = pool.values().stream()
                         .filter(entry -> resultClass.isAssignableFrom(entry.resultClass))
                         .findAny()
-                        .orElseGet(() -> newArrayHandling(resultClass));
+                        .orElseGet(() -> newDefaultHandling(resultClass));
                 cache.put(resultClass, result);
                 return result;
             });
         }
 
-        private static <T> Handling<T> newArrayHandling(final Class<T> resultClass) {
+        private static <T> Handling<T> newDefaultHandling(final Class<T> resultClass) {
             if (resultClass.isArray()) {
                 return new Handling<>(resultClass, arrayFunction(resultClass), -1, null);
+            } else if (resultClass.isEnum()) {
+                return new Handling<T>(resultClass, enumFunction(resultClass), -1, null);
             } else {
                 throw new IllegalStateException("no method specified for <" + resultClass + ">");
             }
         }
 
+        private static <E> Function<SmartRandom, E> enumFunction(final Class<E> resultClass) {
+            final E[] values = resultClass.getEnumConstants();
+            return random -> random.select.next(values);
+        }
+
         private static <T> Function<SmartRandom, T> arrayFunction(final Class<T> resultClass) {
-            if (resultClass.isArray()) {
-                return random -> resultClass.cast(random.anyArray(resultClass.getComponentType()));
-            } else {
-                throw new UnsupportedOperationException("not yet implemented");
-            }
+            return random -> resultClass.cast(random.anyArray(resultClass.getComponentType()));
         }
     }
 
@@ -195,8 +198,8 @@ public class SmartRandom {
             put(Float.class, random -> random.basic.anyFloat());
             put(Double.TYPE, random -> random.basic.anyDouble());
             put(Double.class, random -> random.basic.anyDouble());
-            put(Character.TYPE, random -> random.selector.next(random.core.charset));
-            put(Character.class, random -> random.selector.next(random.core.charset));
+            put(Character.TYPE, random -> random.select.next(random.core.charset));
+            put(Character.class, random -> random.select.next(random.core.charset));
         }
 
         /**
