@@ -210,6 +210,7 @@ public class SmartRandom {
             put(Float.TYPE, random -> random.basic.anyFloat());
             put(Double.TYPE, random -> random.basic.anyDouble());
             put(Character.TYPE, random -> random.select.anyOf(random.core.charset));
+            put(String.class, random -> new String(random.any(char[].class)));
         }
 
         /**
