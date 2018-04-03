@@ -1,6 +1,6 @@
-package net.team33.patterns;
+package net.team33.random;
 
-import net.team33.patterns.test.Recursive;
+import net.team33.random.test.Recursive;
 import org.junit.Assert;
 import org.junit.Test;
 

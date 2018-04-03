@@ -1,4 +1,4 @@
-package net.team33.patterns;
+package net.team33.random;
 
 import org.junit.Test;
 

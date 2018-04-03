@@ -1,14 +1,13 @@
-package net.team33.patterns;
+package net.team33.random;
 
 import com.google.common.base.CaseFormat;
-import net.team33.patterns.test.Recursive;
+import net.team33.random.test.Recursive;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Collection;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,10 +17,8 @@ import static org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SmartRandomTest {
 
-    private static final Function<SmartRandom, Recursive> RANDOM_RECURSIVE =
-            random -> new Recursive(random.any(Recursive[].class));
     private static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
-            .put(Recursive.class, RANDOM_RECURSIVE, 3, null)
+            .put(Recursive.class, random -> new Recursive(random.any(Recursive[].class)), 3, null)
             .prepare();
     private static final Class<?>[] CLASSES = {
             // Singles ...
