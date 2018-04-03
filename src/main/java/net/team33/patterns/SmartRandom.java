@@ -6,8 +6,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * An instrument to randomly generate instances of in principle arbitrary classes.
@@ -29,21 +32,6 @@ public class SmartRandom {
      */
     public static final String DEFAULT_CHARSET = Init.defaultCharset();
 
-    private static final class Init {
-
-        private static final char WHITESPACE = ' ';
-
-        @SuppressWarnings("NumericCastThatLosesPrecision")
-        private static String defaultCharset() {
-            final int length = 128 - WHITESPACE;
-            final char[] result = new char[length];
-            for (int index = 0; index < length; ++index) {
-                result[index] = (char) (WHITESPACE + index);
-            }
-            return new String(result);
-        }
-    }
-
     /**
      * Provides {@link BasicRandom} functionality through a {@link SmartRandom} instance.
      */
@@ -53,10 +41,12 @@ public class SmartRandom {
     /**
      * Provides {@link Selector} functionality through a {@link SmartRandom} instance.
      */
+    @SuppressWarnings("PublicField")
     public final Selector select;
 
     private final Core core;
-    private Bounds arrayBounds = new Bounds(0, 16); // preliminary here
+    private final Map<Class<?>, int[]> limits = new ConcurrentHashMap<>(0);
+    private final Bounds arrayBounds = new Bounds(0, 16); // preliminary here, TODO: move to Builder/Core
 
     private SmartRandom(final Core core) {
         this.core = core;
@@ -94,7 +84,33 @@ public class SmartRandom {
     }
 
     private <T> T anyLimited(final Handling<T> handling) {
-        throw new UnsupportedOperationException("not yet implemented");
+        final int[] limit = Optional.ofNullable(limits.get(handling.resultClass)).orElseGet(() -> {
+            final int[] result = {0};
+            limits.put(handling.resultClass, result);
+            return result;
+        });
+        limit[0] += 1;
+        try {
+            return (limit[0] > handling.maxRecursionDepth)
+                    ? handling.fallback
+                    : anyUnlimited(handling);
+        } finally {
+            limit[0] -= 1;
+        }
+    }
+
+    private static final class Init {
+
+        private static final char WHITESPACE = ' ';
+        private static final char ASCII_LIMIT = 128;
+
+        private static String defaultCharset() {
+            final char[] result = new char[ASCII_LIMIT - WHITESPACE];
+            for (char c = WHITESPACE; c < ASCII_LIMIT; ++c) {
+                result[c - WHITESPACE] = c;
+            }
+            return new String(result);
+        }
     }
 
     private static class Handling<T> {
@@ -132,22 +148,6 @@ public class SmartRandom {
             charset = builder.charset.toCharArray();
         }
 
-        @Override
-        public final SmartRandom get() {
-            return new SmartRandom(this);
-        }
-
-        public final <T> Handling<T> getHandling(final Class<T> resultClass) {
-            return Optional.ofNullable(cache.get(resultClass)).orElseGet(() -> {
-                final Handling<T> result = pool.values().stream()
-                        .filter(entry -> resultClass.isAssignableFrom(entry.resultClass))
-                        .findAny()
-                        .orElseGet(() -> newDefaultHandling(resultClass));
-                cache.put(resultClass, result);
-                return result;
-            });
-        }
-
         private static <T> Handling<T> newDefaultHandling(final Class<T> resultClass) {
             if (resultClass.isArray()) {
                 return new Handling<>(resultClass, arrayFunction(resultClass), -1, null);
@@ -166,6 +166,22 @@ public class SmartRandom {
         private static <T> Function<SmartRandom, T> arrayFunction(final Class<T> resultClass) {
             return random -> resultClass.cast(random.anyArray(resultClass.getComponentType()));
         }
+
+        @Override
+        public final SmartRandom get() {
+            return new SmartRandom(this);
+        }
+
+        public final <T> Handling<T> getHandling(final Class<T> resultClass) {
+            return Optional.ofNullable(cache.get(resultClass)).orElseGet(() -> {
+                final Handling<T> result = pool.values().stream()
+                        .filter(entry -> resultClass.isAssignableFrom(entry.resultClass))
+                        .findAny()
+                        .orElseGet(() -> newDefaultHandling(resultClass));
+                cache.put(resultClass, result);
+                return result;
+            });
+        }
     }
 
     /**
@@ -176,8 +192,10 @@ public class SmartRandom {
     public static class Builder {
 
         @SuppressWarnings("rawtypes")
-        private final Map<Class, Handling> handlings = new HashMap<>(0);
+        private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
 
+        @SuppressWarnings("rawtypes")
+        private final Map<Class, Handling> handlings = new HashMap<>(0);
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
         private String charset = DEFAULT_CHARSET;
@@ -185,21 +203,13 @@ public class SmartRandom {
         @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
             put(Boolean.TYPE, random -> random.basic.anyBoolean());
-            put(Boolean.class, random -> random.basic.anyBoolean());
             put(Byte.TYPE, random -> (byte) random.basic.anyInt());
-            put(Byte.class, random -> (byte) random.basic.anyInt());
             put(Short.TYPE, random -> (short) random.basic.anyInt());
-            put(Short.class, random -> (short) random.basic.anyInt());
             put(Integer.TYPE, random -> random.basic.anyInt());
-            put(Integer.class, random -> random.basic.anyInt());
             put(Long.TYPE, random -> random.basic.anyLong());
-            put(Long.class, random -> random.basic.anyLong());
             put(Float.TYPE, random -> random.basic.anyFloat());
-            put(Float.class, random -> random.basic.anyFloat());
             put(Double.TYPE, random -> random.basic.anyDouble());
-            put(Double.class, random -> random.basic.anyDouble());
             put(Character.TYPE, random -> random.select.next(random.core.charset));
-            put(Character.class, random -> random.select.next(random.core.charset));
         }
 
         /**
@@ -218,8 +228,11 @@ public class SmartRandom {
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method,
                                      final int maxRecursionDepth, final T fallback) {
-
-            handlings.put(resultClass, new Handling<T>(resultClass, method, maxRecursionDepth, fallback));
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            final Consumer<Class> rawPut =
+                    aClass -> handlings.put(aClass, new Handling(aClass, method, maxRecursionDepth, fallback));
+            rawPut.accept(resultClass);
+            Optional.ofNullable(PRIME_CLASSES.get(resultClass)).ifPresent(rawPut);
             return this;
         }
 
@@ -263,6 +276,32 @@ public class SmartRandom {
          */
         public final SmartRandom build() {
             return prepare().get();
+        }
+
+        private static final class Init {
+
+            @SuppressWarnings("rawtypes")
+            private static final Class[][] COUPLED_CLASSES = {
+                    {Boolean.TYPE, Boolean.class},
+                    {Byte.TYPE, Byte.class},
+                    {Short.TYPE, Short.class},
+                    {Integer.TYPE, Integer.class},
+                    {Long.TYPE, Long.class},
+                    {Float.TYPE, Float.class},
+                    {Double.TYPE, Double.class},
+                    {Character.TYPE, Character.class},
+            };
+
+            @SuppressWarnings("rawtypes")
+            private static Map<Class, Class> newPrimeClasses() {
+                final BiConsumer<HashMap<Class, Class>, Class[]> putPair = (map, pair) -> {
+                    map.put(pair[0], pair[1]);
+                    map.put(pair[1], pair[0]);
+                };
+                return Collections.unmodifiableMap(Stream
+                        .of(COUPLED_CLASSES)
+                        .collect(HashMap::new, putPair, Map::putAll));
+            }
         }
     }
 }
