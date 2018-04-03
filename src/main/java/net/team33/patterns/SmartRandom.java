@@ -160,7 +160,7 @@ public class SmartRandom {
 
         private static <E> Function<SmartRandom, E> enumFunction(final Class<E> resultClass) {
             final E[] values = resultClass.getEnumConstants();
-            return random -> random.select.next(values);
+            return random -> random.select.anyOf(values);
         }
 
         private static <T> Function<SmartRandom, T> arrayFunction(final Class<T> resultClass) {
@@ -209,7 +209,7 @@ public class SmartRandom {
             put(Long.TYPE, random -> random.basic.anyLong());
             put(Float.TYPE, random -> random.basic.anyFloat());
             put(Double.TYPE, random -> random.basic.anyDouble());
-            put(Character.TYPE, random -> random.select.next(random.core.charset));
+            put(Character.TYPE, random -> random.select.anyOf(random.core.charset));
         }
 
         /**
