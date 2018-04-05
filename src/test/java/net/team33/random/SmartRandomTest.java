@@ -7,7 +7,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Date;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,12 +28,12 @@ public class SmartRandomTest {
             Boolean.TYPE, Boolean.class, Byte.TYPE, Byte.class, Short.TYPE, Short.class,
             Integer.TYPE, Integer.class, Long.TYPE, Long.class, Float.TYPE, Float.class, Double.TYPE, Double.class,
             Character.TYPE, Character.class, Number.class, Object.class, CaseFormat.class,
-            String.class/*, Date.class, BigInteger.class, BigDecimal.class*/, Recursive.class,
+            String.class, Date.class, BigInteger.class, BigDecimal.class, Recursive.class,
             // Arrays ...
             boolean[].class, Boolean[].class, byte[].class, Byte[].class, short[].class, Short[].class,
             int[].class, Integer[].class, long[].class, Long[].class, float[].class, Float[].class,
             double[].class, Double[].class, char[].class, Character[].class, CaseFormat[].class,
-            String[].class/*, Date[].class, BigInteger[].class, BigDecimal[].class*/, Recursive[].class};
+            String[].class, Date[].class, BigInteger[].class, BigDecimal[].class, Recursive[].class};
 
     private final Class<?> rClass;
     private final SmartRandom random;

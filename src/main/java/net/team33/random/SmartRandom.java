@@ -2,7 +2,10 @@ package net.team33.random;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -256,6 +259,9 @@ public class SmartRandom {
             put(Double.TYPE, random -> random.basic.anyDouble());
             put(Character.TYPE, random -> random.select.anyOf(random.core.charset));
             put(String.class, random -> new String(random.any(char[].class)));
+            put(Date.class, random -> new Date(random.basic.anyLong()));
+            put(BigInteger.class, random -> BigInteger.valueOf(random.basic.anyLong()));
+            put(BigDecimal.class, random -> BigDecimal.valueOf(random.basic.anyDouble()));
         }
 
         /**
