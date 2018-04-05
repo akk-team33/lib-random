@@ -1,23 +1,17 @@
 package net.team33.random;
 
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static java.lang.reflect.Modifier.isStatic;
-import static java.lang.reflect.Modifier.isTransient;
 
 /**
  * An instrument to randomly generate instances of in principle arbitrary classes.
@@ -38,12 +32,6 @@ public class SmartRandom {
      * It consists of all ASCII characters without control characters.
      */
     public static final String DEFAULT_CHARSET = Init.defaultCharset();
-
-    private static final Map<Class<?>, Set<Field>> FIELD_CACHE = new ConcurrentHashMap<>(0);
-    private static final Predicate<Field> FIELD_FILTER = field -> {
-        final int modifiers = field.getModifiers();
-        return !(isStatic(modifiers) || isTransient(modifiers));
-    };
 
     /**
      * Provides {@link BasicRandom} functionality through a {@link SmartRandom} instance.
@@ -84,10 +72,31 @@ public class SmartRandom {
     }
 
     /**
-     * Randomly fills all non-static, non-transient fields of a given {@code target} and returns it.
+     * Randomly sets all public setters* of a given {@code target}.
+     * <p>
+     * A <em>setter</em> in this sense is a method whose name starts with <em>set</em>
+     * and expects exactly one parameter.
+     *
+     * @return The (modified) target.
      */
-    public final <T> T fillFields(final T target) {
-        instanceFields(target.getClass()).forEach(field -> {
+    public final <T> T setAll(final T target) {
+        Reflect.publicSetters(target.getClass()).forEach(setter -> {
+            try {
+                setter.invoke(target, any(setter.getParameterTypes()[0]));
+            } catch (final IllegalAccessException | InvocationTargetException caught) {
+                throw new IllegalStateException("cannot set <" + setter + ">", caught);
+            }
+        });
+        return target;
+    }
+
+    /**
+     * Randomly fills all non-static, non-transient fields of a given {@code target}.
+     *
+     * @return The (modified) target.
+     */
+    public final <T> T setAllFields(final T target) {
+        Reflect.instanceFields(target.getClass()).forEach(field -> {
             try {
                 field.set(target, any(field.getType()));
             } catch (final IllegalAccessException caught) {
@@ -95,23 +104,6 @@ public class SmartRandom {
             }
         });
         return target;
-    }
-
-    private static Stream<Field> instanceFields(final Class<?> targetClass) {
-        return Optional.ofNullable(FIELD_CACHE.get(targetClass)).orElseGet(() -> {
-            final Set<Field> result = declaredFields(targetClass)
-                    .filter(FIELD_FILTER)
-                    .peek(field -> field.setAccessible(true))
-                    .collect(Collectors.toSet());
-            FIELD_CACHE.put(targetClass, result);
-            return result;
-        }).stream();
-    }
-
-    private static Stream<Field> declaredFields(final Class<?> targetClass) {
-        return (null == targetClass) ? Stream.empty() : Stream.concat(
-                Stream.of(targetClass.getDeclaredFields()),
-                declaredFields(targetClass.getSuperclass()));
     }
 
     private Object anyArray(final Class<?> componentType) {
