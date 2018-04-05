@@ -1,6 +1,7 @@
 package net.team33.random;
 
 import net.team33.random.test.DataObject;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
@@ -12,6 +13,33 @@ import static org.junit.Assert.assertTrue;
 public class SmartRandomComposedTest {
 
     private static final int MAX_RETRY = 1000;
+
+    @Test
+    public final void unknownNull() {
+        final SmartRandom random = SmartRandom.builder()
+                .setUnknownHandling(UnknownHandling.RETURN_NULL)
+                .build();
+        //noinspection Convert2MethodRef
+        Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY)
+                .forEach(object -> Assert.assertNull(object));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public final void unknownFail() {
+        final SmartRandom random = SmartRandom.builder()
+                .setUnknownHandling(UnknownHandling.FAIL)
+                .build();
+        Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY)
+                .forEach(result -> Assert.fail(String.format("should fail but was <%s>", result)));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public final void unknownDefault() {
+        final SmartRandom random = SmartRandom.builder()
+                .build();
+        Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY)
+                .forEach(result -> Assert.fail(String.format("should fail but was <%s>", result)));
+    }
 
     @SuppressWarnings({"AssertEqualsMayBeAssertSame", "Duplicates"})
     @Test

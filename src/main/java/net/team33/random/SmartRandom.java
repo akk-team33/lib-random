@@ -13,6 +13,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static net.team33.random.Classes.distance;
+
 /**
  * An instrument to randomly generate instances of in principle arbitrary classes.
  * <p>
@@ -47,7 +49,7 @@ public class SmartRandom {
 
     private final Core core;
     private final Map<Class<?>, int[]> limits = new ConcurrentHashMap<>(0);
-    private final Bounds arrayBounds = new Bounds(0, 16); // preliminary here, TODO: move to Builder/Core
+    private final Bounds arrayBounds = new Bounds(1, 16); // preliminary here, TODO: move to Builder/Core
 
     private SmartRandom(final Core core) {
         this.core = core;
@@ -175,6 +177,7 @@ public class SmartRandom {
         private final Supplier<BasicRandom> newBasic;
         private final Map<Class, Handling> pool;
         private final Map<Class, Handling> cache;
+        private final UnknownHandling unknownHandling;
         private final char[] charset;
 
         private Core(final Builder builder) {
@@ -182,15 +185,16 @@ public class SmartRandom {
             pool = Collections.unmodifiableMap(new HashMap<>(builder.handlings));
             cache = new ConcurrentHashMap<>(pool.size());
             charset = builder.charset.toCharArray();
+            unknownHandling = builder.unknownHandling;
         }
 
-        private static <T> Handling<T> newDefaultHandling(final Class<T> resultClass) {
+        private <T> Handling<T> newDefaultHandling(final Class<T> resultClass) {
             if (resultClass.isArray()) {
                 return new Handling<>(resultClass, arrayFunction(resultClass), -1, null);
             } else if (resultClass.isEnum()) {
                 return new Handling<>(resultClass, enumFunction(resultClass), -1, null);
             } else {
-                throw new IllegalStateException("no method specified for <" + resultClass + ">");
+                return new Handling<>(resultClass, unknownHandling.function(resultClass), -1, null);
             }
         }
 
@@ -212,7 +216,11 @@ public class SmartRandom {
             return Optional.ofNullable(cache.get(resultClass)).orElseGet(() -> {
                 final Handling<T> result = pool.values().stream()
                         .filter(entry -> resultClass.isAssignableFrom(entry.resultClass))
-                        .findAny()
+                        .reduce((left, right) -> {
+                            final int leftDistance = distance(resultClass, left.resultClass);
+                            final int rightDistance = distance(resultClass, right.resultClass);
+                            return (leftDistance > rightDistance) ? right : left;
+                        })
                         .orElseGet(() -> newDefaultHandling(resultClass));
                 cache.put(resultClass, result);
                 return result;
@@ -235,6 +243,7 @@ public class SmartRandom {
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
         private String charset = DEFAULT_CHARSET;
+        private UnknownHandling unknownHandling = UnknownHandling.FAIL;
 
         @SuppressWarnings("NumericCastThatLosesPrecision")
         private Builder() {
@@ -315,6 +324,14 @@ public class SmartRandom {
             return prepare().get();
         }
 
+        /**
+         * Sets the handling of unknown data types. Default is {@link UnknownHandling#FAIL}.
+         */
+        public final Builder setUnknownHandling(final UnknownHandling unknownHandling) {
+            this.unknownHandling = unknownHandling;
+            return this;
+        }
+
         private static final class Init {
 
             @SuppressWarnings("rawtypes")
@@ -341,4 +358,5 @@ public class SmartRandom {
             }
         }
     }
+
 }
