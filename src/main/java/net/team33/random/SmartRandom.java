@@ -16,8 +16,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static net.team33.random.Classes.distance;
-
 /**
  * An instrument to randomly generate instances of in principle arbitrary classes.
  * <p>
@@ -51,7 +49,7 @@ public class SmartRandom {
     public final Selector select;
 
     private final Core core;
-    private final Map<Class<?>, int[]> limits = new ConcurrentHashMap<>(0);
+    private final Map<Typing.Setup, int[]> limits = new ConcurrentHashMap<>(0);
     private final Bounds arrayBounds = new Bounds(1, 16); // preliminary here, TODO: move to Builder/Core
 
     private SmartRandom(final Core core) {
@@ -71,8 +69,9 @@ public class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Class<T> resultClass) {
-        return core
-                .getHandling(resultClass).strategy
+        //noinspection unchecked
+        return (T) core
+                .getHandling(new Typing.Setup(resultClass)).strategy
                 .apply(this);
     }
 
@@ -120,14 +119,15 @@ public class SmartRandom {
         return result;
     }
 
-    private <T> T anyUnlimited(final Handling<T> handling) {
+    private Object anyUnlimited(final Handling handling) {
+        // noinspection unchecked
         return handling.method.apply(this);
     }
 
-    private <T> T anyLimited(final Handling<T> handling) {
-        final int[] limit = Optional.ofNullable(limits.get(handling.resultClass)).orElseGet(() -> {
+    private Object anyLimited(final Handling handling) {
+        final int[] limit = Optional.ofNullable(limits.get(handling.setup)).orElseGet(() -> {
             final int[] result = {0};
-            limits.put(handling.resultClass, result);
+            limits.put(handling.setup, result);
             return result;
         });
         limit[0] += 1;
@@ -154,17 +154,18 @@ public class SmartRandom {
         }
     }
 
-    private static class Handling<T> {
+    @SuppressWarnings("rawtypes")
+    private static class Handling {
 
-        private final Class<T> resultClass;
-        private final Function<SmartRandom, T> method;
+        private final Typing.Setup setup;
+        private final Function method;
         private final int maxRecursionDepth;
-        private final T fallback;
-        private final Function<SmartRandom, T> strategy;
+        private final Object fallback;
+        private final Function<SmartRandom, Object> strategy;
 
-        private Handling(final Class<T> resultClass, final Function<SmartRandom, T> method,
-                         final int maxRecursionDepth, final T fallback) {
-            this.resultClass = resultClass;
+        private Handling(final Typing.Setup setup, final Function method,
+                         final int maxRecursionDepth, final Object fallback) {
+            this.setup = setup;
             this.method = method;
             this.maxRecursionDepth = maxRecursionDepth;
             this.fallback = fallback;
@@ -178,8 +179,8 @@ public class SmartRandom {
     private static class Core implements Supplier<SmartRandom> {
 
         private final Supplier<BasicRandom> newBasic;
-        private final Map<Class, Handling> pool;
-        private final Map<Class, Handling> cache;
+        private final Map<Typing.Setup, Handling> pool;
+        private final Map<Typing.Setup, Handling> cache;
         private final UnknownHandling unknownHandling;
         private final char[] charset;
 
@@ -191,13 +192,14 @@ public class SmartRandom {
             unknownHandling = builder.unknownHandling;
         }
 
-        private <T> Handling<T> newDefaultHandling(final Class<T> resultClass) {
-            if (resultClass.isArray()) {
-                return new Handling<>(resultClass, arrayFunction(resultClass), -1, null);
-            } else if (resultClass.isEnum()) {
-                return new Handling<>(resultClass, enumFunction(resultClass), -1, null);
+        private Handling newDefaultHandling(final Typing.Setup setup) {
+            final Class rawClass = setup.getRawClass();
+            if (rawClass.isArray()) {
+                return new Handling(setup, arrayFunction(rawClass), -1, null);
+            } else if (rawClass.isEnum()) {
+                return new Handling(setup, enumFunction(rawClass), -1, null);
             } else {
-                return new Handling<>(resultClass, unknownHandling.function(resultClass), -1, null);
+                return new Handling(setup, unknownHandling.function(rawClass), -1, null);
             }
         }
 
@@ -215,17 +217,13 @@ public class SmartRandom {
             return new SmartRandom(this);
         }
 
-        public final <T> Handling<T> getHandling(final Class<T> resultClass) {
-            return Optional.ofNullable(cache.get(resultClass)).orElseGet(() -> {
-                final Handling<T> result = pool.values().stream()
-                        .filter(entry -> resultClass.isAssignableFrom(entry.resultClass))
-                        .reduce((left, right) -> {
-                            final int leftDistance = distance(resultClass, left.resultClass);
-                            final int rightDistance = distance(resultClass, right.resultClass);
-                            return (leftDistance > rightDistance) ? right : left;
-                        })
-                        .orElseGet(() -> newDefaultHandling(resultClass));
-                cache.put(resultClass, result);
+        public final Handling getHandling(final Typing.Setup setup) {
+            return Optional.ofNullable(cache.get(setup)).orElseGet(() -> {
+                final Handling result = pool.values().stream()
+                        .filter(entry -> setup.equals(entry.setup))
+                        .findAny()
+                        .orElseGet(() -> newDefaultHandling(setup));
+                cache.put(setup, result);
                 return result;
             });
         }
@@ -242,7 +240,8 @@ public class SmartRandom {
         private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
 
         @SuppressWarnings("rawtypes")
-        private final Map<Class, Handling> handlings = new HashMap<>(0);
+        private final Map<Typing.Setup, Handling> handlings = new HashMap<>(0);
+
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
         private String charset = DEFAULT_CHARSET;
@@ -280,11 +279,17 @@ public class SmartRandom {
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method,
                                      final int maxRecursionDepth, final T fallback) {
+            return put(new Typing.Setup(resultClass), method, maxRecursionDepth, fallback);
+        }
+
+        @SuppressWarnings("rawtypes")
+        private Builder put(final Typing.Setup setup, final Function method,
+                            final int maxRecursionDepth, final Object fallback) {
             @SuppressWarnings({"unchecked", "rawtypes"})
-            final Consumer<Class> rawPut =
-                    aClass -> handlings.put(aClass, new Handling(aClass, method, maxRecursionDepth, fallback));
-            rawPut.accept(resultClass);
-            Optional.ofNullable(PRIME_CLASSES.get(resultClass)).ifPresent(rawPut);
+            final Consumer<Typing.Setup> rawPut =
+                    setup1 -> handlings.put(setup1, new Handling(setup1, method, maxRecursionDepth, fallback));
+            rawPut.accept(setup);
+            Optional.ofNullable(PRIME_CLASSES.get(setup.getRawClass())).map(Typing.Setup::new).ifPresent(rawPut);
             return this;
         }
 

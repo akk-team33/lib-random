@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 
-@SuppressWarnings({"AbstractClassWithOnlyOneDirectInheritor", "AbstractClassWithoutAbstractMethods"})
+@SuppressWarnings({"AbstractClassWithOnlyOneDirectInheritor", "AbstractClassWithoutAbstractMethods", "unused"})
 public abstract class Typing<T> {
 
     private final Setup setup;
@@ -79,7 +79,7 @@ public abstract class Typing<T> {
             }
         };
 
-        @SuppressWarnings("StaticMethodOnlyUsedInOneClass")
+        @SuppressWarnings({"StaticMethodOnlyUsedInOneClass", "ChainOfInstanceofChecks"})
         public static Spec valueOf(final Type type) {
             if (type instanceof Class)
                 return CLASS;
@@ -96,7 +96,8 @@ public abstract class Typing<T> {
 
     public static class Setup {
 
-        private final Class<?> rawClass;
+        @SuppressWarnings("rawtypes")
+        private final Class rawClass;
         private final List<Setup> parameters;
         private transient volatile String presentation;
 
@@ -127,7 +128,8 @@ public abstract class Typing<T> {
             this(type, Spec.valueOf(type));
         }
 
-        public final Class<?> getRawClass() {
+        @SuppressWarnings("rawtypes")
+        public final Class getRawClass() {
             return rawClass;
         }
 
