@@ -70,9 +70,24 @@ public class SmartRandom {
      */
     public final <T> T any(final Class<T> resultClass) {
         //noinspection unchecked
-        return (T) core
-                .getHandling(new Generic.Compound(resultClass)).strategy
-                .apply(this);
+        return (T) any(new Generic.Compound(resultClass));
+    }
+
+    /**
+     * Randomly generates an instance of a given generic type.
+     * <p>
+     * Typically the result is not {@code null} but may be {@code null} in some circumstances based on the
+     * configuration of this {@link SmartRandom}.
+     */
+    public final <T> T any(final Generic<T> resultType) {
+        //noinspection unchecked
+        return (T) any(resultType.getCompound());
+    }
+
+    private Object any(final Generic.Compound compound) {
+        return core
+                .getHandling(compound)
+                .strategy.apply(this);
     }
 
     /**
@@ -264,7 +279,8 @@ public class SmartRandom {
         }
 
         /**
-         * Defines a special method to generate an instance of a given class using a given {@link SmartRandom} instance.
+         * Defines a special method to generate an instance of a given class
+         * using a given {@link SmartRandom} instance.
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method) {
             return put(resultClass, method, -1, null);
@@ -282,16 +298,37 @@ public class SmartRandom {
             return put(new Generic.Compound(resultClass), method, maxRecursionDepth, fallback);
         }
 
+        /**
+         * Defines a special method to generate an instance of a given class
+         * using a given {@link SmartRandom} instance.
+         */
+        public final <T> Builder put(final Generic<T> resultType, final Function<SmartRandom, T> method) {
+            return put(resultType, method, -1, null);
+        }
+
+        /**
+         * Defines a special method to generate an instance of a given generic type
+         * using a given {@link SmartRandom} instance.
+         * <p>
+         * In contrast to {@link #put(Generic, Function)} you can specify a max recursion depth for the related class
+         * and a fixed fallback value to be returned in case the maximum recursion depth is exceeded.
+         * The fallback may also be {@code null}.
+         */
+        public final <T> Builder put(final Generic<T> resultType, final Function<SmartRandom, T> method,
+                                     final int maxRecursionDepth, final T fallback) {
+            return put(resultType.getCompound(), method, maxRecursionDepth, fallback);
+        }
+
         @SuppressWarnings("rawtypes")
         private Builder put(final Generic.Compound compound, final Function method,
                             final int maxRecursionDepth, final Object fallback) {
             @SuppressWarnings({"unchecked", "rawtypes"})
-            final Consumer<Generic.Compound> rawPut =
+            final Consumer<Generic.Compound> putting =
                     cmp -> handlings.put(cmp, new Handling(cmp, method, maxRecursionDepth, fallback));
-            rawPut.accept(compound);
+            putting.accept(compound);
             Optional.ofNullable(PRIME_CLASSES.get(compound.getRawClass()))
                     .map(Generic.Compound::new)
-                    .ifPresent(rawPut);
+                    .ifPresent(putting);
             return this;
         }
 
