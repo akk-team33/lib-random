@@ -9,13 +9,23 @@ import java.util.Set;
 
 public class GenericTest {
 
-    @Test(expected = RuntimeException.class)
+    private static final Generic<List<String>> LIST_OF_STRING =
+            new Generic<List<String>>() {
+            };
+    private static final Generic<String> STRING_GENERIC =
+            new Generic<String>() {
+            };
+    private static final Generic<Map<List<String>, Map<Double, Set<Integer>>>> MAP_OF_LIST_TO_MAP =
+            new Generic<Map<List<String>, Map<Double, Set<Integer>>>>() {
+            };
+
+    @Test(expected = IllegalStateException.class)
     public final void failDirectGeneric() {
         final Direct<String> direct = new Direct<>();
         Assert.fail("expected to Fail but was " + direct.getCompound());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = IllegalStateException.class)
     public final void failIndirect() {
         final Generic<?> indirect = new Indirect();
         Assert.fail("expected to Fail but was " + indirect.getCompound());
@@ -25,8 +35,7 @@ public class GenericTest {
     public final void simple() {
         Assert.assertEquals(
                 new Generic.Compound(String.class),
-                new Generic<String>() {
-                }.getCompound()
+                STRING_GENERIC.getCompound()
         );
     }
 
@@ -34,7 +43,16 @@ public class GenericTest {
     public final void list() {
         Assert.assertEquals(
                 new Generic.Compound(List.class, new Generic.Compound(String.class)),
-                new Generic<List<String>>() {
+                LIST_OF_STRING.getCompound()
+        );
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public final void rawList() {
+        Assert.assertEquals(
+                new Generic.Compound(List.class),
+                new Generic<List>() {
                 }.getCompound()
         );
     }
@@ -49,8 +67,20 @@ public class GenericTest {
                                 Map.class,
                                 new Generic.Compound(Double.class),
                                 new Generic.Compound(Set.class, new Generic.Compound(Integer.class)))),
-                new Generic<Map<List<String>, Map<Double, Set<Integer>>>>() {
-                }.getCompound()
+                MAP_OF_LIST_TO_MAP.getCompound()
+        );
+    }
+
+    @SuppressWarnings("AssertEqualsBetweenInconvertibleTypes")
+    @Test
+    public final void equals() {
+        Assert.assertEquals(
+                new StringSet1(),
+                new StringSet2()
+        );
+        Assert.assertNotEquals(
+                new StringList1(),
+                new StringSet1()
         );
     }
 
@@ -59,5 +89,17 @@ public class GenericTest {
 
     @SuppressWarnings("EmptyClass")
     private static class Indirect extends Direct<String> {
+    }
+
+    @SuppressWarnings("EmptyClass")
+    private static class StringList1 extends Generic<List<String>> {
+    }
+
+    @SuppressWarnings("EmptyClass")
+    private static class StringSet1 extends Generic<Set<String>> {
+    }
+
+    @SuppressWarnings("EmptyClass")
+    private static class StringSet2 extends Generic<Set<String>> {
     }
 }

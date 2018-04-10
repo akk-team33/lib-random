@@ -289,7 +289,9 @@ public class SmartRandom {
             final Consumer<Generic.Compound> rawPut =
                     cmp -> handlings.put(cmp, new Handling(cmp, method, maxRecursionDepth, fallback));
             rawPut.accept(compound);
-            Optional.ofNullable(PRIME_CLASSES.get(compound.getRawClass())).map(Compound::new).ifPresent(rawPut);
+            Optional.ofNullable(PRIME_CLASSES.get(compound.getRawClass()))
+                    .map(Generic.Compound::new)
+                    .ifPresent(rawPut);
             return this;
         }
 

@@ -19,7 +19,11 @@ public abstract class Generic<T> {
     private final Compound compound;
 
     protected Generic() {
-        compound = new Compound(typeArgument(getClass()));
+        try {
+            compound = new Compound(typeArgument(getClass()));
+        } catch (final RuntimeException e) {
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     private static Type typeArgument(final Class<?> thisClass) {
@@ -31,7 +35,7 @@ public abstract class Generic<T> {
         if (Generic.class.equals(parameterized.getRawType())) {
             return parameterized;
         } else {
-            throw newIllegalStateException();
+            throw new IllegalArgumentException("The type of an instance must be derived directly from <Generic>");
         }
     }
 
@@ -39,12 +43,9 @@ public abstract class Generic<T> {
         if (type instanceof ParameterizedType) {
             return (ParameterizedType) type;
         } else {
-            throw newIllegalStateException();
+            throw new IllegalArgumentException(
+                    "The type of an instance must be a concretely parameterized derivation of <Generic>");
         }
-    }
-
-    private static IllegalStateException newIllegalStateException() {
-        return new IllegalStateException("The type of an instance must be derived directly from <Generic>");
     }
 
     public final Compound getCompound() {
@@ -117,15 +118,17 @@ public abstract class Generic<T> {
         private transient volatile String presentation;
 
         private Compound(final Class<?> rawClass, final List<Compound> parameters) {
+            this.rawClass = rawClass;
             final int expectedLength = rawClass.getTypeParameters().length;
             final int actualLength = parameters.size();
-            if (expectedLength == actualLength) {
-                this.rawClass = rawClass;
+            if (0 == actualLength) {
+                this.parameters = Collections.emptyList();
+            } else if (expectedLength == actualLength) {
                 this.parameters = unmodifiableList(new ArrayList<>(parameters));
             } else {
                 throw new IllegalArgumentException(
                         String.format(
-                                "class %s needs %d type parameters but was %d",
+                                "class %s needs %d type parameter(s) but was %d",
                                 rawClass.getCanonicalName(), expectedLength, actualLength));
             }
         }
