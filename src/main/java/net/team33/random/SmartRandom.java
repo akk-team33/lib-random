@@ -49,7 +49,7 @@ public class SmartRandom {
     public final Selector select;
 
     private final Core core;
-    private final Map<Typing.Setup, int[]> limits = new ConcurrentHashMap<>(0);
+    private final Map<Generic.Compound, int[]> limits = new ConcurrentHashMap<>(0);
     private final Bounds arrayBounds = new Bounds(1, 16); // preliminary here, TODO: move to Builder/Core
 
     private SmartRandom(final Core core) {
@@ -71,7 +71,7 @@ public class SmartRandom {
     public final <T> T any(final Class<T> resultClass) {
         //noinspection unchecked
         return (T) core
-                .getHandling(new Typing.Setup(resultClass)).strategy
+                .getHandling(new Generic.Compound(resultClass)).strategy
                 .apply(this);
     }
 
@@ -125,9 +125,9 @@ public class SmartRandom {
     }
 
     private Object anyLimited(final Handling handling) {
-        final int[] limit = Optional.ofNullable(limits.get(handling.setup)).orElseGet(() -> {
+        final int[] limit = Optional.ofNullable(limits.get(handling.compound)).orElseGet(() -> {
             final int[] result = {0};
-            limits.put(handling.setup, result);
+            limits.put(handling.compound, result);
             return result;
         });
         limit[0] += 1;
@@ -157,15 +157,15 @@ public class SmartRandom {
     @SuppressWarnings("rawtypes")
     private static class Handling {
 
-        private final Typing.Setup setup;
+        private final Generic.Compound compound;
         private final Function method;
         private final int maxRecursionDepth;
         private final Object fallback;
         private final Function<SmartRandom, Object> strategy;
 
-        private Handling(final Typing.Setup setup, final Function method,
+        private Handling(final Generic.Compound compound, final Function method,
                          final int maxRecursionDepth, final Object fallback) {
-            this.setup = setup;
+            this.compound = compound;
             this.method = method;
             this.maxRecursionDepth = maxRecursionDepth;
             this.fallback = fallback;
@@ -179,8 +179,8 @@ public class SmartRandom {
     private static class Core implements Supplier<SmartRandom> {
 
         private final Supplier<BasicRandom> newBasic;
-        private final Map<Typing.Setup, Handling> pool;
-        private final Map<Typing.Setup, Handling> cache;
+        private final Map<Generic.Compound, Handling> pool;
+        private final Map<Generic.Compound, Handling> cache;
         private final UnknownHandling unknownHandling;
         private final char[] charset;
 
@@ -192,14 +192,14 @@ public class SmartRandom {
             unknownHandling = builder.unknownHandling;
         }
 
-        private Handling newDefaultHandling(final Typing.Setup setup) {
-            final Class rawClass = setup.getRawClass();
+        private Handling newDefaultHandling(final Generic.Compound compound) {
+            final Class rawClass = compound.getRawClass();
             if (rawClass.isArray()) {
-                return new Handling(setup, arrayFunction(rawClass), -1, null);
+                return new Handling(compound, arrayFunction(rawClass), -1, null);
             } else if (rawClass.isEnum()) {
-                return new Handling(setup, enumFunction(rawClass), -1, null);
+                return new Handling(compound, enumFunction(rawClass), -1, null);
             } else {
-                return new Handling(setup, unknownHandling.function(rawClass), -1, null);
+                return new Handling(compound, unknownHandling.function(rawClass), -1, null);
             }
         }
 
@@ -217,13 +217,13 @@ public class SmartRandom {
             return new SmartRandom(this);
         }
 
-        public final Handling getHandling(final Typing.Setup setup) {
-            return Optional.ofNullable(cache.get(setup)).orElseGet(() -> {
+        public final Handling getHandling(final Generic.Compound compound) {
+            return Optional.ofNullable(cache.get(compound)).orElseGet(() -> {
                 final Handling result = pool.values().stream()
-                        .filter(entry -> setup.equals(entry.setup))
+                        .filter(entry -> compound.equals(entry.compound))
                         .findAny()
-                        .orElseGet(() -> newDefaultHandling(setup));
-                cache.put(setup, result);
+                        .orElseGet(() -> newDefaultHandling(compound));
+                cache.put(compound, result);
                 return result;
             });
         }
@@ -240,7 +240,7 @@ public class SmartRandom {
         private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
 
         @SuppressWarnings("rawtypes")
-        private final Map<Typing.Setup, Handling> handlings = new HashMap<>(0);
+        private final Map<Generic.Compound, Handling> handlings = new HashMap<>(0);
 
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
@@ -279,17 +279,17 @@ public class SmartRandom {
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method,
                                      final int maxRecursionDepth, final T fallback) {
-            return put(new Typing.Setup(resultClass), method, maxRecursionDepth, fallback);
+            return put(new Generic.Compound(resultClass), method, maxRecursionDepth, fallback);
         }
 
         @SuppressWarnings("rawtypes")
-        private Builder put(final Typing.Setup setup, final Function method,
+        private Builder put(final Generic.Compound compound, final Function method,
                             final int maxRecursionDepth, final Object fallback) {
             @SuppressWarnings({"unchecked", "rawtypes"})
-            final Consumer<Typing.Setup> rawPut =
-                    setup1 -> handlings.put(setup1, new Handling(setup1, method, maxRecursionDepth, fallback));
-            rawPut.accept(setup);
-            Optional.ofNullable(PRIME_CLASSES.get(setup.getRawClass())).map(Typing.Setup::new).ifPresent(rawPut);
+            final Consumer<Generic.Compound> rawPut =
+                    cmp -> handlings.put(cmp, new Handling(cmp, method, maxRecursionDepth, fallback));
+            rawPut.accept(compound);
+            Optional.ofNullable(PRIME_CLASSES.get(compound.getRawClass())).map(Compound::new).ifPresent(rawPut);
             return this;
         }
 

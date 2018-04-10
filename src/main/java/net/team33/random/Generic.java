@@ -14,21 +14,21 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 
 @SuppressWarnings({"AbstractClassWithOnlyOneDirectInheritor", "AbstractClassWithoutAbstractMethods", "unused"})
-public abstract class Typing<T> {
+public abstract class Generic<T> {
 
-    private final Setup setup;
+    private final Compound compound;
 
-    protected Typing() {
-        setup = new Setup(typingArgument(getClass()));
+    protected Generic() {
+        compound = new Compound(typeArgument(getClass()));
     }
 
-    private static Type typingArgument(final Class<?> thisClass) {
+    private static Type typeArgument(final Class<?> thisClass) {
         final Type type = thisClass.getGenericSuperclass();
         return direct(parameterized(type)).getActualTypeArguments()[0];
     }
 
     private static ParameterizedType direct(final ParameterizedType parameterized) {
-        if (Typing.class.equals(parameterized.getRawType())) {
+        if (Generic.class.equals(parameterized.getRawType())) {
             return parameterized;
         } else {
             throw newIllegalStateException();
@@ -44,11 +44,26 @@ public abstract class Typing<T> {
     }
 
     private static IllegalStateException newIllegalStateException() {
-        return new IllegalStateException("The type of an instance must be derived directly from <Typing>");
+        return new IllegalStateException("The type of an instance must be derived directly from <Generic>");
     }
 
-    public final Setup getSetup() {
-        return setup;
+    public final Compound getCompound() {
+        return compound;
+    }
+
+    @Override
+    public final boolean equals(final Object obj) {
+        return (this == obj) || ((obj instanceof Generic<?>) && compound.equals(((Generic<?>) obj).compound));
+    }
+
+    @Override
+    public final int hashCode() {
+        return compound.hashCode();
+    }
+
+    @Override
+    public final String toString() {
+        return compound.toString();
     }
 
     private enum Spec {
@@ -60,7 +75,7 @@ public abstract class Typing<T> {
             }
 
             @Override
-            List<Setup> parameters(final Type type) {
+            List<Compound> parameters(final Type type) {
                 return Collections.emptyList();
             }
         },
@@ -72,9 +87,9 @@ public abstract class Typing<T> {
             }
 
             @Override
-            List<Setup> parameters(final Type type) {
+            List<Compound> parameters(final Type type) {
                 return Stream.of(((ParameterizedType) type).getActualTypeArguments())
-                        .map(Setup::new)
+                        .map(Compound::new)
                         .collect(Collectors.toList());
             }
         };
@@ -91,17 +106,17 @@ public abstract class Typing<T> {
 
         abstract Class<?> rawClass(final Type type);
 
-        abstract List<Setup> parameters(final Type type);
+        abstract List<Compound> parameters(final Type type);
     }
 
-    public static class Setup {
+    public static class Compound {
 
         @SuppressWarnings("rawtypes")
         private final Class rawClass;
-        private final List<Setup> parameters;
+        private final List<Compound> parameters;
         private transient volatile String presentation;
 
-        private Setup(final Class<?> rawClass, final List<Setup> parameters) {
+        private Compound(final Class<?> rawClass, final List<Compound> parameters) {
             final int expectedLength = rawClass.getTypeParameters().length;
             final int actualLength = parameters.size();
             if (expectedLength == actualLength) {
@@ -115,16 +130,16 @@ public abstract class Typing<T> {
             }
         }
 
-        private Setup(final Type type, final Spec spec) {
+        private Compound(final Type type, final Spec spec) {
             this(spec.rawClass(type), spec.parameters(type));
         }
 
         @SuppressWarnings("OverloadedVarargsMethod")
-        public Setup(final Class<?> rawClass, final Setup... parameters) {
+        public Compound(final Class<?> rawClass, final Compound... parameters) {
             this(rawClass, asList(parameters));
         }
 
-        public Setup(final Type type) {
+        public Compound(final Type type) {
             this(type, Spec.valueOf(type));
         }
 
@@ -133,7 +148,7 @@ public abstract class Typing<T> {
             return rawClass;
         }
 
-        public final List<Setup> getParameters() {
+        public final List<Compound> getParameters() {
             // is already unmodifiable ...
             // noinspection AssignmentOrReturnOfFieldWithMutableType
             return parameters;
@@ -146,10 +161,10 @@ public abstract class Typing<T> {
 
         @Override
         public final boolean equals(final Object obj) {
-            return (this == obj) || ((obj instanceof Typing.Setup) && isEqual((Setup) obj));
+            return (this == obj) || ((obj instanceof Generic.Compound) && isEqual((Compound) obj));
         }
 
-        private boolean isEqual(final Setup other) {
+        private boolean isEqual(final Compound other) {
             return rawClass.equals(other.rawClass) && parameters.equals(other.parameters);
         }
 
@@ -158,7 +173,7 @@ public abstract class Typing<T> {
             return Optional.ofNullable(presentation).orElseGet(() -> {
                 presentation = rawClass.getSimpleName() + (
                         parameters.isEmpty() ? "" : parameters.stream()
-                                .map(Setup::toString)
+                                .map(Compound::toString)
                                 .collect(Collectors.joining(", ", "<", ">")));
                 return presentation;
             });

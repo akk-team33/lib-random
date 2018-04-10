@@ -22,6 +22,8 @@ public class SmartRandomTest {
 
     private static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
             .put(Recursive.class, random -> new Recursive(random.any(Recursive[].class)), 3, null)
+            .put(Number.class, random -> random.any(Double.class), 3, null)
+            .put(Object.class, random -> random.any(String.class), 3, null)
             .prepare();
     private static final Class<?>[] CLASSES = {
             // Singles ...
