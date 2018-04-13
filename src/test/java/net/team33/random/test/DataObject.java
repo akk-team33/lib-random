@@ -1,5 +1,9 @@
 package net.team33.random.test;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class DataObject {
 
     private Boolean boolVal;
@@ -11,6 +15,7 @@ public class DataObject {
     private Double doubleVal;
     private Character charVal;
     private String stringVal;
+    private List<String> listVal;
 
     public final Boolean getBoolVal() {
         return boolVal;
@@ -90,6 +95,15 @@ public class DataObject {
 
     public final DataObject setStringVal(final String stringVal) {
         this.stringVal = stringVal;
+        return this;
+    }
+
+    public final List<String> getListVal() {
+        return Collections.unmodifiableList(listVal);
+    }
+
+    public final DataObject setListVal(final List<String> listVal) {
+        this.listVal = new ArrayList<>(listVal);
         return this;
     }
 }

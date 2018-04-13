@@ -1,18 +1,25 @@
 package net.team33.random;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -98,14 +105,31 @@ public class SmartRandom {
      *
      * @return The (modified) target.
      */
-    public final <T> T setAll(final T target) {
-        Reflect.publicSetters(target.getClass()).forEach(setter -> {
-            try {
-                setter.invoke(target, any(setter.getParameterTypes()[0]));
-            } catch (final IllegalAccessException | InvocationTargetException caught) {
-                throw new IllegalStateException("cannot set <" + setter + ">", caught);
-            }
-        });
+    @SuppressWarnings("OverloadedVarargsMethod")
+    public final <T> T setAll(final T target, final String... ignore) {
+        final Collection<String> ignorable = new HashSet<>(Arrays.asList(ignore));
+        return setAll(target, setter -> !ignorable.contains(setter.getName()));
+    }
+
+    /**
+     * Randomly sets all public setters* of a given {@code target}.
+     * <p>
+     * A <em>setter</em> in this sense is a method whose name starts with <em>set</em>
+     * and expects exactly one parameter.
+     *
+     * @return The (modified) target.
+     */
+    public final <T> T setAll(final T target, final Predicate<Method> filter) {
+        Reflect.publicSetters(target.getClass())
+                .filter(filter)
+                .forEach(setter -> {
+                    try {
+                        final Type parameterType = setter.getGenericParameterTypes()[0];
+                        setter.invoke(target, any(new Generic.Compound(parameterType)));
+                    } catch (final IllegalAccessException | InvocationTargetException caught) {
+                        throw new IllegalStateException("cannot set <" + setter + ">", caught);
+                    }
+                });
         return target;
     }
 
@@ -114,14 +138,28 @@ public class SmartRandom {
      *
      * @return The (modified) target.
      */
-    public final <T> T setAllFields(final T target) {
-        Reflect.instanceFields(target.getClass()).forEach(field -> {
-            try {
-                field.set(target, any(field.getType()));
-            } catch (final IllegalAccessException caught) {
-                throw new IllegalStateException("cannot set <" + field + ">", caught);
-            }
-        });
+    @SuppressWarnings("OverloadedVarargsMethod")
+    public final <T> T setAllFields(final T target, final String... ignore) {
+        final Collection<String> ignorable = new HashSet<>(Arrays.asList(ignore));
+        return setAllFields(target, field -> !ignorable.contains(field.getName()));
+    }
+
+    /**
+     * Randomly fills all non-static, non-transient fields of a given {@code target}.
+     *
+     * @return The (modified) target.
+     */
+    public final <T> T setAllFields(final T target, final Predicate<Field> filter) {
+        Reflect.instanceFields(target.getClass())
+                .filter(filter)
+                .forEach(field -> {
+                    try {
+                        final Type parameterType = field.getGenericType();
+                        field.set(target, any(new Generic.Compound(parameterType)));
+                    } catch (final IllegalAccessException caught) {
+                        throw new IllegalStateException("cannot set <" + field + ">", caught);
+                    }
+                });
         return target;
     }
 
@@ -214,7 +252,7 @@ public class SmartRandom {
             } else if (rawClass.isEnum()) {
                 return new Handling(compound, enumFunction(rawClass), -1, null);
             } else {
-                return new Handling(compound, unknownHandling.function(rawClass), -1, null);
+                return new Handling(compound, unknownHandling.function(compound), -1, null);
             }
         }
 

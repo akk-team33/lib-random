@@ -12,9 +12,9 @@ public enum UnknownHandling {
      */
     FAIL {
         @Override
-        public <T> Function<SmartRandom, T> function(final Class<T> resultClass) {
+        public <T> Function<SmartRandom, T> function(final Generic.Compound compound) {
             return random -> {
-                throw new IllegalArgumentException("no method specified for <" + resultClass + ">");
+                throw new IllegalArgumentException("no method specified for " + compound);
             };
         }
     },
@@ -24,10 +24,10 @@ public enum UnknownHandling {
      */
     RETURN_NULL {
         @Override
-        public <T> Function<SmartRandom, T> function(final Class<T> resultClass) {
+        public <T> Function<SmartRandom, T> function(final Generic.Compound compound) {
             return random -> null;
         }
     };
 
-    public abstract <T> Function<SmartRandom, T> function(final Class<T> resultClass);
+    public abstract <T> Function<SmartRandom, T> function(final Generic.Compound compound);
 }

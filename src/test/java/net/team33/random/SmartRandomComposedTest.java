@@ -5,6 +5,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertNotNull;
@@ -13,6 +16,8 @@ import static org.junit.Assert.assertTrue;
 public class SmartRandomComposedTest {
 
     private static final int MAX_RETRY = 1000;
+    private static final Generic<List<String>> LIST_OF_STRING = new Generic<List<String>>() {
+    };
 
     @Test
     public final void unknownNull() {
@@ -45,6 +50,7 @@ public class SmartRandomComposedTest {
     @Test
     public final void fieldWise() {
         final SmartRandom random = SmartRandom.builder()
+                .put(LIST_OF_STRING, rnd -> new ArrayList<>(Arrays.asList(rnd.any(String[].class))))
                 .put(DataObject.class, rnd -> rnd.setAllFields(new DataObject()))
                 .build();
         Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY).forEach(result -> {
@@ -59,10 +65,11 @@ public class SmartRandomComposedTest {
 
     @SuppressWarnings({"AssertEqualsMayBeAssertSame", "Duplicates"})
     @Test
-    public final void setterdWise() {
+    public final void setterWise() {
         final SmartRandom random = SmartRandom.builder()
+                .put(LIST_OF_STRING, rnd -> new ArrayList<>(Arrays.asList(rnd.any(String[].class))))
                 .put(DataObject.class, rnd -> rnd.setAll(new DataObject()))
-                .build();
+                .prepare().get();
         Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY).forEach(result -> {
             Reflect.publicGetters(DataObject.class).forEach(getter -> {
                 final Object value = invoke(getter, result);

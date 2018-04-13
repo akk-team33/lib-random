@@ -102,7 +102,7 @@ public abstract class Generic<T> {
             else if (type instanceof ParameterizedType)
                 return PARAMETERIZED_TYPE;
             else
-                throw new IllegalArgumentException("Unknown type: " + type.getClass().getCanonicalName());
+                throw new IllegalArgumentException("Unsupported type: " + type.getClass().getCanonicalName());
         }
 
         abstract Class<?> rawClass(final Type type);
