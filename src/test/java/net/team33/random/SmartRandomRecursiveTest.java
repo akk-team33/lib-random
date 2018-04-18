@@ -9,35 +9,34 @@ import java.util.function.Function;
 @SuppressWarnings("ClassNamePrefixedWithPackageName")
 public class SmartRandomRecursiveTest {
 
-    private static final Function<SmartRandom, Recursive> RANDOM_RECURSIVE =
+    private static final Function<SmartRandom, Recursive> UNLIMITED =
             random -> new Recursive(random.any(Recursive[].class));
 
     @Test
     public final void anyRecursive0Null() {
         Assert.assertNull(SmartRandom.builder()
-                .put(Recursive.class, RANDOM_RECURSIVE, 0, null).build()
+                .put(Recursive.class, rnd -> null).build()
                 .any(Recursive.class));
     }
 
     @Test
     public final void anyRecursive0Empty() {
         Assert.assertSame(Recursive.EMPTY, SmartRandom.builder()
-                .put(Recursive.class, RANDOM_RECURSIVE, 0, Recursive.EMPTY).build()
+                .put(Recursive.class, rnd -> Recursive.EMPTY).build()
                 .any(Recursive.class));
     }
 
     @Test(expected = StackOverflowError.class)
     public final void anyRecursiveFail() {
-        //noinspection ObjectToString
         Assert.fail("Should fail but was " + SmartRandom.builder()
-                .put(Recursive.class, RANDOM_RECURSIVE).build()
+                .put(Recursive.class, UNLIMITED).build()
                 .any(Recursive.class));
     }
 
     @Test
     public final void anyRecursive() {
         final Recursive recursive = SmartRandom.builder()
-                .put(Recursive.class, RANDOM_RECURSIVE, 3, null).build()
+                .put(Recursive.class, () -> new Limited<>(UNLIMITED, 3, null)).build()
                 .any(Recursive.class);
         Assert.assertNotNull(recursive);
         Assert.assertNotNull(recursive.getChildren()[0]);

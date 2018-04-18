@@ -2,7 +2,6 @@ package net.team33.random;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -55,12 +54,14 @@ public class SmartRandom {
     @SuppressWarnings("PublicField")
     public final Selector select;
 
+    @SuppressWarnings("rawtypes")
+    private final Map<Generic.Compound, Function> methods;
     private final Core core;
-    private final Map<Generic.Compound, int[]> limits = new ConcurrentHashMap<>(0);
     private final Bounds arrayBounds = new Bounds(1, 16); // preliminary here, TODO: move to Builder/Core
 
     private SmartRandom(final Core core) {
         this.core = core;
+        this.methods = new ConcurrentHashMap<>(core.methods.size());
         this.basic = core.newBasic.get();
         this.select = new Selector(basic);
     }
@@ -76,8 +77,7 @@ public class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Class<T> resultClass) {
-        //noinspection unchecked
-        return (T) any(new Generic.Compound(resultClass));
+        return any(new Generic.Compound(resultClass));
     }
 
     /**
@@ -87,14 +87,21 @@ public class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Generic<T> resultType) {
-        //noinspection unchecked
-        return (T) any(resultType.getCompound());
+        return any(resultType.getCompound());
     }
 
-    private Object any(final Generic.Compound compound) {
-        return core
-                .getHandling(compound)
-                .strategy.apply(this);
+    @SuppressWarnings("unchecked")
+    private <T> T any(final Generic.Compound compound) {
+        return (T) getMethod(compound).apply(this);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private Function getMethod(final Generic.Compound compound) {
+        return Optional.ofNullable(methods.get(compound)).orElseGet(() -> {
+            final Function result = core.getMethod(compound).get();
+            methods.put(compound, result);
+            return result;
+        });
     }
 
     /**
@@ -125,8 +132,9 @@ public class SmartRandom {
                 .forEach(setter -> {
                     try {
                         final Type parameterType = setter.getGenericParameterTypes()[0];
-                        setter.invoke(target, any(new Generic.Compound(parameterType)));
-                    } catch (final IllegalAccessException | InvocationTargetException caught) {
+                        final Object value = any(new Generic.Compound(parameterType));
+                        setter.invoke(target, value);
+                    } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + setter + ">", caught);
                     }
                 });
@@ -156,7 +164,7 @@ public class SmartRandom {
                     try {
                         final Type parameterType = field.getGenericType();
                         field.set(target, any(new Generic.Compound(parameterType)));
-                    } catch (final IllegalAccessException caught) {
+                    } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + field + ">", caught);
                     }
                 });
@@ -170,27 +178,6 @@ public class SmartRandom {
             Array.set(result, index, any(componentType));
         }
         return result;
-    }
-
-    private Object anyUnlimited(final Handling handling) {
-        // noinspection unchecked
-        return handling.method.apply(this);
-    }
-
-    private Object anyLimited(final Handling handling) {
-        final int[] limit = Optional.ofNullable(limits.get(handling.compound)).orElseGet(() -> {
-            final int[] result = {0};
-            limits.put(handling.compound, result);
-            return result;
-        });
-        limit[0] += 1;
-        try {
-            return (limit[0] > handling.maxRecursionDepth)
-                    ? handling.fallback
-                    : anyUnlimited(handling);
-        } finally {
-            limit[0] -= 1;
-        }
     }
 
     private static final class Init {
@@ -207,53 +194,19 @@ public class SmartRandom {
         }
     }
 
-    @SuppressWarnings("rawtypes")
-    private static class Handling {
-
-        private final Generic.Compound compound;
-        private final Function method;
-        private final int maxRecursionDepth;
-        private final Object fallback;
-        private final Function<SmartRandom, Object> strategy;
-
-        private Handling(final Generic.Compound compound, final Function method,
-                         final int maxRecursionDepth, final Object fallback) {
-            this.compound = compound;
-            this.method = method;
-            this.maxRecursionDepth = maxRecursionDepth;
-            this.fallback = fallback;
-            this.strategy = (0 > maxRecursionDepth)
-                    ? random -> random.anyUnlimited(this)
-                    : random -> random.anyLimited(this);
-        }
-    }
-
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static class Core implements Supplier<SmartRandom> {
 
         private final Supplier<BasicRandom> newBasic;
-        private final Map<Generic.Compound, Handling> pool;
-        private final Map<Generic.Compound, Handling> cache;
+        private final Map<Generic.Compound, Supplier<Function>> methods;
         private final UnknownHandling unknownHandling;
         private final char[] charset;
 
         private Core(final Builder builder) {
             newBasic = builder.newBasic;
-            pool = Collections.unmodifiableMap(new HashMap<>(builder.handlings));
-            cache = new ConcurrentHashMap<>(pool.size());
+            methods = new ConcurrentHashMap<>(builder.methods);
             charset = builder.charset.toCharArray();
             unknownHandling = builder.unknownHandling;
-        }
-
-        private Handling newDefaultHandling(final Generic.Compound compound) {
-            final Class rawClass = compound.getRawClass();
-            if (rawClass.isArray()) {
-                return new Handling(compound, arrayFunction(rawClass), -1, null);
-            } else if (rawClass.isEnum()) {
-                return new Handling(compound, enumFunction(rawClass), -1, null);
-            } else {
-                return new Handling(compound, unknownHandling.function(compound), -1, null);
-            }
         }
 
         private static <E> Function<SmartRandom, E> enumFunction(final Class<E> resultClass) {
@@ -270,15 +223,24 @@ public class SmartRandom {
             return new SmartRandom(this);
         }
 
-        public final Handling getHandling(final Generic.Compound compound) {
-            return Optional.ofNullable(cache.get(compound)).orElseGet(() -> {
-                final Handling result = pool.values().stream()
-                        .filter(entry -> compound.equals(entry.compound))
-                        .findAny()
-                        .orElseGet(() -> newDefaultHandling(compound));
-                cache.put(compound, result);
+        private Supplier<Function> getMethod(final Generic.Compound compound) {
+            return Optional.ofNullable(methods.get(compound)).orElseGet(() -> {
+                final Function method = getDefaultMethod(compound);
+                final Supplier<Function> result = () -> method;
+                methods.put(compound, result);
                 return result;
             });
+        }
+
+        private Function getDefaultMethod(final Generic.Compound compound) {
+            final Class rawClass = compound.getRawClass();
+            if (rawClass.isArray()) {
+                return arrayFunction(rawClass);
+            } else if (rawClass.isEnum()) {
+                return enumFunction(rawClass);
+            } else {
+                return unknownHandling.function(compound);
+            }
         }
     }
 
@@ -293,7 +255,7 @@ public class SmartRandom {
         private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
 
         @SuppressWarnings("rawtypes")
-        private final Map<Generic.Compound, Handling> handlings = new HashMap<>(0);
+        private final Map<Generic.Compound, Supplier<Function>> methods = new HashMap<>(0);
 
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
@@ -319,54 +281,60 @@ public class SmartRandom {
         /**
          * Defines a special method to generate an instance of a given class
          * using a given {@link SmartRandom} instance.
+         *
+         * @see #put(Class, Supplier)
+         * @see #put(Generic, Function)
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method) {
-            return put(resultClass, method, -1, null);
-        }
-
-        /**
-         * Defines a special method to generate an instance of a given class using a given {@link SmartRandom} instance.
-         * <p>
-         * In contrast to {@link #put(Class, Function)} you can specify a max recursion depth for the related class
-         * and a fixed fallback value to be returned in case the maximum recursion depth is exceeded.
-         * The fallback may also be {@code null}.
-         */
-        public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method,
-                                     final int maxRecursionDepth, final T fallback) {
-            return put(new Generic.Compound(resultClass), method, maxRecursionDepth, fallback);
+            return put(resultClass, () -> method);
         }
 
         /**
          * Defines a special method to generate an instance of a given class
          * using a given {@link SmartRandom} instance.
+         * <p>
+         * In contrast to {@link #put(Class, Function)} this should be used, when the method itself is not thread-safe
+         * and must be instantiated along to a {@link SmartRandom} instance.
+         *
+         * @see #put(Class, Function)
+         * @see #put(Generic, Supplier)
+         */
+        public final <T> Builder put(final Class<T> resultClass, final Supplier<Function<SmartRandom, T>> supplier) {
+            return put(new Generic.Compound(resultClass), supplier);
+        }
+
+        /**
+         * Defines a special method to generate an instance of a given generic type
+         * using a given {@link SmartRandom} instance.
+         *
+         * @see #put(Generic, Supplier)
+         * @see #put(Class, Function)
          */
         public final <T> Builder put(final Generic<T> resultType, final Function<SmartRandom, T> method) {
-            return put(resultType, method, -1, null);
+            return put(resultType, () -> method);
         }
 
         /**
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          * <p>
-         * In contrast to {@link #put(Generic, Function)} you can specify a max recursion depth for the related class
-         * and a fixed fallback value to be returned in case the maximum recursion depth is exceeded.
-         * The fallback may also be {@code null}.
+         * In contrast to {@link #put(Generic, Function)} this should be used, when the method itself is not thread-safe
+         * and must be instantiated along to a {@link SmartRandom} instance.
+         *
+         * @see #put(Generic, Function)
+         * @see #put(Class, Supplier)
          */
-        public final <T> Builder put(final Generic<T> resultType, final Function<SmartRandom, T> method,
-                                     final int maxRecursionDepth, final T fallback) {
-            return put(resultType.getCompound(), method, maxRecursionDepth, fallback);
+        public final <T> Builder put(final Generic<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
+            return put(resultType.getCompound(), supplier);
         }
 
-        @SuppressWarnings("rawtypes")
-        private Builder put(final Generic.Compound compound, final Function method,
-                            final int maxRecursionDepth, final Object fallback) {
-            @SuppressWarnings({"unchecked", "rawtypes"})
-            final Consumer<Generic.Compound> putting =
-                    cmp -> handlings.put(cmp, new Handling(cmp, method, maxRecursionDepth, fallback));
-            putting.accept(compound);
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private Builder put(final Generic.Compound compound, final Supplier supplier) {
+            final Consumer<Generic.Compound> put = cmp -> methods.put(cmp, supplier);
+            put.accept(compound);
             Optional.ofNullable(PRIME_CLASSES.get(compound.getRawClass()))
                     .map(Generic.Compound::new)
-                    .ifPresent(putting);
+                    .ifPresent(put);
             return this;
         }
 

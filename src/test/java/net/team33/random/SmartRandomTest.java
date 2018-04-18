@@ -1,6 +1,7 @@
 package net.team33.random;
 
 import com.google.common.base.CaseFormat;
+import net.team33.random.test.DataObject;
 import net.team33.random.test.Recursive;
 import org.junit.Assert;
 import org.junit.Test;
@@ -9,8 +10,11 @@ import org.junit.runners.Parameterized;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,22 +24,28 @@ import static org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SmartRandomTest {
 
+    private static final Generic<List<String>> LIST_OF_STRING = new Generic<List<String>>() {
+    };
     private static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
-            .put(Recursive.class, random -> new Recursive(random.any(Recursive[].class)), 3, null)
-            .put(Number.class, random -> random.any(Double.class), 3, null)
-            .put(Object.class, random -> random.any(String.class), 3, null)
+            .put(Recursive.class, () -> new Limited<>(rnd -> new Recursive(rnd.any(Recursive[].class)), 3, null))
+            .put(DataObject.class, random -> random.setAll(new DataObject()))
+            .put(LIST_OF_STRING, random -> new ArrayList<>(Arrays.asList(random.any(String[].class))))
+            .put(Number.class, random -> random.any(Double.class))
+            .put(Object.class, random -> random.any(String.class))
             .prepare();
     private static final Class<?>[] CLASSES = {
             // Singles ...
             Boolean.TYPE, Boolean.class, Byte.TYPE, Byte.class, Short.TYPE, Short.class,
             Integer.TYPE, Integer.class, Long.TYPE, Long.class, Float.TYPE, Float.class, Double.TYPE, Double.class,
             Character.TYPE, Character.class, Number.class, Object.class, CaseFormat.class,
-            String.class, Date.class, BigInteger.class, BigDecimal.class, Recursive.class,
+            String.class, Date.class, BigInteger.class, BigDecimal.class,
+            Recursive.class, DataObject.class,
             // Arrays ...
             boolean[].class, Boolean[].class, byte[].class, Byte[].class, short[].class, Short[].class,
             int[].class, Integer[].class, long[].class, Long[].class, float[].class, Float[].class,
             double[].class, Double[].class, char[].class, Character[].class, CaseFormat[].class,
-            String[].class, Date[].class, BigInteger[].class, BigDecimal[].class, Recursive[].class};
+            String[].class, Date[].class, BigInteger[].class, BigDecimal[].class,
+            Recursive[].class, DataObject[].class};
 
     private final Class<?> rClass;
     private final SmartRandom random;
