@@ -7,8 +7,6 @@ import org.junit.Test;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +32,6 @@ public class SmartRandomComposedTest {
             .put(MAP_INTEGER_TO_LIST, SmartRandomComposedTest::newIntegerToListMap)
             .put(MAP_INTEGER_TO_DECIMAL, rnd -> new HashMap<>(0))
             .put(MAP_STRING_TO_LIST, rnd -> new HashMap<>(0))
-            .put(LIST_OF_STRING, rnd -> new ArrayList<>(Arrays.asList(rnd.any(String[].class))))
             .prepare();
 
     @Test

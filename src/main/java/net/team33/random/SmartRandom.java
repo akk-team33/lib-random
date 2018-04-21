@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -14,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -233,6 +235,25 @@ public final class SmartRandom {
             return random -> resultClass.cast(random.anyArray(resultClass.getComponentType()));
         }
 
+        private static <E> Function<SmartRandom, List<E>> listFunction(final Type.Compound elmCmp) {
+            return random -> Stream.<E>generate(() -> random.any(elmCmp))
+                    .limit(random.arrayBounds.actual(random.basic))
+                    .collect(ArrayList::new, List::add, List::addAll);
+        }
+
+        private static <E> Function<SmartRandom, Set<E>> setFunction(final Type.Compound elmCmp) {
+            return random -> Stream.<E>generate(() -> random.any(elmCmp))
+                    .limit(random.arrayBounds.actual(random.basic))
+                    .collect(HashSet::new, Set::add, Set::addAll);
+        }
+
+        private static <K, V> Function<SmartRandom, Map<K, V>> mapFunction(final Type.Compound keyCmp,
+                                                                           final Type.Compound valCmp) {
+            return random -> Stream.<K>generate(() -> random.any(keyCmp))
+                    .limit(random.arrayBounds.actual(random.basic))
+                    .collect(HashMap::new, (map, key) -> map.put(key, random.any(valCmp)), Map::putAll);
+        }
+
         @Override
         public final SmartRandom get() {
             return new SmartRandom(this);
@@ -247,12 +268,19 @@ public final class SmartRandom {
             });
         }
 
+        @SuppressWarnings("IfStatementWithTooManyBranches")
         private Function getDefaultMethod(final Type.Compound compound) {
             final Class rawClass = compound.getRawClass();
             if (rawClass.isArray()) {
                 return arrayFunction(rawClass);
             } else if (rawClass.isEnum()) {
                 return enumFunction(rawClass);
+            } else if (List.class.equals(rawClass) && (1 == compound.getParameters().size())) {
+                return listFunction(compound.getParameters().get(0));
+            } else if (Set.class.equals(rawClass) && (1 == compound.getParameters().size())) {
+                return setFunction(compound.getParameters().get(0));
+            } else if (Map.class.equals(rawClass) && (2 == compound.getParameters().size())) {
+                return mapFunction(compound.getParameters().get(0), compound.getParameters().get(1));
             } else {
                 return unknownHandling.function(compound);
             }

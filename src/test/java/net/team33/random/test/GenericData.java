@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.unmodifiableMap;
 
@@ -11,7 +12,7 @@ public class GenericData<K, V> {
 
     private Map<K, List<V>> mapVal;
     private Map<K, BigDecimal> bigDecimalMap;
-    private Map<String, List<V>> stringListMap;
+    private Map<String, Set<V>> stringSetMap;
 
     public final Map<K, List<V>> getMapVal() {
         return unmodifiableMap(mapVal);
@@ -31,12 +32,12 @@ public class GenericData<K, V> {
         return this;
     }
 
-    public final Map<String, List<V>> getStringListMap() {
-        return unmodifiableMap(stringListMap);
+    public final Map<String, Set<V>> getStringSetMap() {
+        return unmodifiableMap(stringSetMap);
     }
 
-    public final GenericData<K, V> setStringListMap(final Map<String, List<V>> stringListMap) {
-        this.stringListMap = new HashMap<>(stringListMap);
+    public final GenericData<K, V> setStringSetMap(final Map<String, Set<V>> stringSetMap) {
+        this.stringSetMap = new HashMap<>(stringSetMap);
         return this;
     }
 }
