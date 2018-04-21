@@ -3,6 +3,7 @@ package net.team33.random.test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class DataObject {
 
@@ -15,6 +16,7 @@ public class DataObject {
     private Double doubleVal;
     private Character charVal;
     private String stringVal;
+    private TimeUnit timeUnitVal;
     private List<String> listVal;
 
     public final Boolean getBoolVal() {
@@ -95,6 +97,15 @@ public class DataObject {
 
     public final DataObject setStringVal(final String stringVal) {
         this.stringVal = stringVal;
+        return this;
+    }
+
+    public final TimeUnit getTimeUnitVal() {
+        return timeUnitVal;
+    }
+
+    public final DataObject setTimeUnitVal(final TimeUnit timeUnitVal) {
+        this.timeUnitVal = timeUnitVal;
         return this;
     }
 
