@@ -4,6 +4,8 @@ import java.util.Random;
 
 public interface BasicRandom {
 
+    byte[] anyBytes(final int length);
+
     int anyInt();
 
     int anyInt(final int bound);
@@ -21,6 +23,13 @@ public interface BasicRandom {
     class Simple implements BasicRandom {
 
         private final Random backing = new Random();
+
+        @Override
+        public final byte[] anyBytes(final int length) {
+            final byte[] result = new byte[length];
+            backing.nextBytes(result);
+            return result;
+        }
 
         @Override
         public final int anyInt() {

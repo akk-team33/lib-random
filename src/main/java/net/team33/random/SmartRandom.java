@@ -32,8 +32,8 @@ import java.util.stream.Stream;
  * @see Builder#build()
  * @see #builder()
  */
-@SuppressWarnings("ClassWithOnlyPrivateConstructors")
-public class SmartRandom {
+@SuppressWarnings("unused")
+public final class SmartRandom {
 
     /**
      * Defines a charset to be used for generating characters and strings
@@ -57,7 +57,7 @@ public class SmartRandom {
     @SuppressWarnings("rawtypes")
     private final Map<Generic.Compound, Function> methods;
     private final Core core;
-    private final Bounds arrayBounds = new Bounds(1, 16); // preliminary here, TODO: move to Builder/Core
+    private final Bounds arrayBounds = new Bounds(4, 16); // preliminary here, TODO: move to Builder/Core
 
     private SmartRandom(final Core core) {
         this.core = core;
@@ -195,7 +195,7 @@ public class SmartRandom {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static class Core implements Supplier<SmartRandom> {
+    private static final class Core implements Supplier<SmartRandom> {
 
         private final Supplier<BasicRandom> newBasic;
         private final Map<Generic.Compound, Supplier<Function>> methods;
@@ -249,7 +249,8 @@ public class SmartRandom {
      * <p>
      * A {@link Builder} is mutable and hence not tread-safe.
      */
-    public static class Builder {
+    @SuppressWarnings("FieldHasSetterButNoGetter")
+    public static final class Builder {
 
         @SuppressWarnings("rawtypes")
         private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
@@ -414,5 +415,4 @@ public class SmartRandom {
             }
         }
     }
-
 }
