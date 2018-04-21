@@ -28,6 +28,10 @@ public abstract class Generic<T> {
         }
     }
 
+    private Generic(final Class<T> aClass) {
+        compound = new Compound(aClass);
+    }
+
     private static Type typeArgument(final Class<?> thisClass) {
         final Type type = thisClass.getGenericSuperclass();
         return direct(parameterized(type)).getActualTypeArguments()[0];
@@ -48,6 +52,11 @@ public abstract class Generic<T> {
             throw new IllegalArgumentException(
                     "The type of an instance must be a concretely parameterized derivation of <Generic>");
         }
+    }
+
+    public static <T> Generic<T> of(final Class<T> aClass) {
+        return new Generic<T>(aClass) {
+        };
     }
 
     public final Compound getCompound() {
