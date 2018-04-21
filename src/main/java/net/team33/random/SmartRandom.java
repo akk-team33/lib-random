@@ -90,7 +90,7 @@ public final class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Class<T> resultClass) {
-        return any(new Type.Compound(resultClass));
+        return any(Type.of(resultClass));
     }
 
     /**
@@ -302,7 +302,7 @@ public final class SmartRandom {
          * @see #put(Type, Function)
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method) {
-            return put(resultClass, () -> method);
+            return put(Type.of(resultClass), () -> method);
         }
 
         /**
@@ -316,7 +316,7 @@ public final class SmartRandom {
          * @see #put(Type, Supplier)
          */
         public final <T> Builder put(final Class<T> resultClass, final Supplier<Function<SmartRandom, T>> supplier) {
-            return put(new Type.Compound(resultClass), supplier);
+            return put(Type.of(resultClass), supplier);
         }
 
         /**
@@ -327,7 +327,7 @@ public final class SmartRandom {
          * @see #put(Class, Function)
          */
         public final <T> Builder put(final Type<T> resultType, final Function<SmartRandom, T> method) {
-            return put(resultType, () -> method);
+            return put(resultType.getCompound(), () -> method);
         }
 
         /**
