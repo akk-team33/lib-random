@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,15 +30,20 @@ public class SmartRandomComposedTest {
     };
     private static final Generic<Map<BigInteger, BigDecimal>> MAP_INTEGER_TO_DECIMAL = new Generic<Map<BigInteger, BigDecimal>>() {
     };
+    static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
+            .put(MAP_INTEGER_TO_LIST, SmartRandomComposedTest::newIntegerToListMap)
+            .put(MAP_INTEGER_TO_DECIMAL, rnd -> new HashMap<>(0))
+            .put(MAP_STRING_TO_LIST, rnd -> new HashMap<>(0))
+            .put(LIST_OF_STRING, rnd -> new ArrayList<>(Arrays.asList(rnd.any(String[].class))))
+            .prepare();
 
     @Test
     public final void unknownNull() {
         final SmartRandom random = SmartRandom.builder()
                 .setUnknownHandling(UnknownHandling.RETURN_NULL)
                 .build();
-        //noinspection Convert2MethodRef
         Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY)
-                .forEach(object -> Assert.assertNull(object));
+                .forEach(object -> Assert.assertNull(String.valueOf(object), object));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -67,41 +73,29 @@ public class SmartRandomComposedTest {
     @SuppressWarnings({"AssertEqualsMayBeAssertSame", "Duplicates"})
     @Test
     public final void fieldWise() {
-        final SmartRandom random = SmartRandom.builder()
-                .put(MAP_INTEGER_TO_LIST, SmartRandomComposedTest::newIntegerToListMap)
-                .put(MAP_INTEGER_TO_DECIMAL, rnd -> new HashMap<>(0))
-                .put(MAP_STRING_TO_LIST, rnd -> new HashMap<>(0))
-                .put(LIST_OF_STRING, rnd -> new ArrayList<>(Arrays.asList(rnd.any(String[].class))))
-                .put(DataObject.class, rnd -> rnd.setAllFields(new DataObject()))
-                .build();
-        Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY).forEach(result -> {
-            Reflect.publicGetters(DataObject.class).forEach(getter -> {
-                final Object value = invoke(getter, result);
-                final String message = getter.getName() + "()";
-                assertNotNull(message, value);
-                assertTrue(message, getter.getReturnType().isAssignableFrom(value.getClass()));
-            });
-        });
+        final SmartRandom random = RANDOM.get();
+        Stream.generate(() -> random.setAllFields(new DataObject())).limit(MAX_RETRY)
+                .forEach(result -> Reflect.publicGetters(result.getClass())
+                        .forEach(getter -> {
+                            final Object value = invoke(getter, result);
+                            final String message = getter.getName() + "()";
+                            assertNotNull(message, value);
+                            assertTrue(message, getter.getReturnType().isAssignableFrom(value.getClass()));
+                        }));
     }
 
     @SuppressWarnings({"AssertEqualsMayBeAssertSame", "Duplicates"})
     @Test
     public final void setterWise() {
-        final SmartRandom random = SmartRandom.builder()
-                .put(MAP_INTEGER_TO_LIST, SmartRandomComposedTest::newIntegerToListMap)
-                .put(MAP_INTEGER_TO_DECIMAL, rnd -> new HashMap<>(0))
-                .put(MAP_STRING_TO_LIST, rnd -> new HashMap<>(0))
-                .put(LIST_OF_STRING, rnd -> new ArrayList<>(Arrays.asList(rnd.any(String[].class))))
-                .put(DataObject.class, rnd -> rnd.setAll(new DataObject()))
-                .prepare().get();
-        Stream.generate(() -> random.any(DataObject.class)).limit(MAX_RETRY).forEach(result -> {
-            Reflect.publicGetters(DataObject.class).forEach(getter -> {
-                final Object value = invoke(getter, result);
-                final String message = getter.getName() + "()";
-                assertNotNull(message, value);
-                assertTrue(message, getter.getReturnType().isAssignableFrom(value.getClass()));
-            });
-        });
+        final SmartRandom random = RANDOM.get();
+        Stream.generate(() -> random.setAll(new DataObject())).limit(MAX_RETRY)
+                .forEach(result -> Reflect.publicGetters(DataObject.class)
+                        .forEach(getter -> {
+                            final Object value = invoke(getter, result);
+                            final String message = getter.getName() + "()";
+                            assertNotNull(message, value);
+                            assertTrue(message, getter.getReturnType().isAssignableFrom(value.getClass()));
+                        }));
     }
 
     private static Object invoke(final Method getter, final Object subject) {
