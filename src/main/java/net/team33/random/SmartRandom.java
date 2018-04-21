@@ -3,7 +3,6 @@ package net.team33.random;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -59,7 +58,7 @@ public final class SmartRandom {
     public final Selector select;
 
     @SuppressWarnings("rawtypes")
-    private final Map<Generic.Compound, Function> methods;
+    private final Map<Type.Compound, Function> methods;
     private final Core core;
     private final Bounds arrayBounds = new Bounds(4, 16); // preliminary here, TODO: move to Builder/Core
 
@@ -74,6 +73,16 @@ public final class SmartRandom {
         return new Builder();
     }
 
+    private static Map<String, Type.Compound> newMap(final Class<?> aClass) {
+        final List<Type.Compound> actual = new Type.Compound(aClass.getGenericSuperclass(), emptyMap())
+                .getParameters();
+        final TypeVariable<? extends Class<?>>[] formal = aClass.getSuperclass().getTypeParameters();
+        final Map<String, Type.Compound> result = new HashMap<>(actual.size());
+        for (int i = 0; i < actual.size(); ++i)
+            result.put(formal[i].getName(), actual.get(i));
+        return result;
+    }
+
     /**
      * Randomly generates an instance of a given class.
      * <p>
@@ -81,7 +90,7 @@ public final class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Class<T> resultClass) {
-        return any(new Generic.Compound(resultClass));
+        return any(new Type.Compound(resultClass));
     }
 
     /**
@@ -90,22 +99,13 @@ public final class SmartRandom {
      * Typically the result is not {@code null} but may be {@code null} in some circumstances based on the
      * configuration of this {@link SmartRandom}.
      */
-    public final <T> T any(final Generic<T> resultType) {
+    public final <T> T any(final Type<T> resultType) {
         return any(resultType.getCompound());
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T any(final Generic.Compound compound) {
+    private <T> T any(final Type.Compound compound) {
         return (T) getMethod(compound).apply(this);
-    }
-
-    @SuppressWarnings("rawtypes")
-    private Function getMethod(final Generic.Compound compound) {
-        return Optional.ofNullable(methods.get(compound)).orElseGet(() -> {
-            final Function result = core.getMethod(compound).get();
-            methods.put(compound, result);
-            return result;
-        });
     }
 
     /**
@@ -122,6 +122,15 @@ public final class SmartRandom {
         return setAll(target, setter -> !ignorable.contains(setter.getName()));
     }
 
+    @SuppressWarnings("rawtypes")
+    private Function getMethod(final Type.Compound compound) {
+        return Optional.ofNullable(methods.get(compound)).orElseGet(() -> {
+            final Function result = core.getMethod(compound).get();
+            methods.put(compound, result);
+            return result;
+        });
+    }
+
     /**
      * Randomly sets all public setters* of a given {@code target}.
      * <p>
@@ -131,29 +140,19 @@ public final class SmartRandom {
      * @return The (modified) target.
      */
     public final <T> T setAll(final T target, final Predicate<Method> filter) {
-        final Map<String, Generic.Compound> map = newMap(target.getClass());
+        final Map<String, Type.Compound> map = newMap(target.getClass());
         Reflect.publicSetters(target.getClass())
                 .filter(filter)
                 .forEach(setter -> {
                     try {
-                        final Type parameterType = setter.getGenericParameterTypes()[0];
-                        final Object value = any(new Generic.Compound(parameterType, map));
+                        final java.lang.reflect.Type parameterType = setter.getGenericParameterTypes()[0];
+                        final Object value = any(new Type.Compound(parameterType, map));
                         setter.invoke(target, value);
                     } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + setter + ">", caught);
                     }
                 });
         return target;
-    }
-
-    private static Map<String, Generic.Compound> newMap(final Class<?> aClass) {
-        final List<Generic.Compound> actual = new Generic.Compound(aClass.getGenericSuperclass(), emptyMap())
-                .getParameters();
-        final TypeVariable<? extends Class<?>>[] formal = aClass.getSuperclass().getTypeParameters();
-        final Map<String, Generic.Compound> result = new HashMap<>(actual.size());
-        for (int i = 0; i < actual.size(); ++i)
-            result.put(formal[i].getName(), actual.get(i));
-        return result;
     }
 
     /**
@@ -173,13 +172,13 @@ public final class SmartRandom {
      * @return The (modified) target.
      */
     public final <T> T setAllFields(final T target, final Predicate<Field> filter) {
-        final Map<String, Generic.Compound> map = newMap(target.getClass());
+        final Map<String, Type.Compound> map = newMap(target.getClass());
         Reflect.instanceFields(target.getClass())
                 .filter(filter)
                 .forEach(field -> {
                     try {
-                        final Type parameterType = field.getGenericType();
-                        field.set(target, any(new Generic.Compound(parameterType, map)));
+                        final java.lang.reflect.Type parameterType = field.getGenericType();
+                        field.set(target, any(new Type.Compound(parameterType, map)));
                     } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + field + ">", caught);
                     }
@@ -214,7 +213,7 @@ public final class SmartRandom {
     private static final class Core implements Supplier<SmartRandom> {
 
         private final Supplier<BasicRandom> newBasic;
-        private final Map<Generic.Compound, Supplier<Function>> methods;
+        private final Map<Type.Compound, Supplier<Function>> methods;
         private final UnknownHandling unknownHandling;
         private final char[] charset;
 
@@ -239,7 +238,7 @@ public final class SmartRandom {
             return new SmartRandom(this);
         }
 
-        private Supplier<Function> getMethod(final Generic.Compound compound) {
+        private Supplier<Function> getMethod(final Type.Compound compound) {
             return Optional.ofNullable(methods.get(compound)).orElseGet(() -> {
                 final Function method = getDefaultMethod(compound);
                 final Supplier<Function> result = () -> method;
@@ -248,7 +247,7 @@ public final class SmartRandom {
             });
         }
 
-        private Function getDefaultMethod(final Generic.Compound compound) {
+        private Function getDefaultMethod(final Type.Compound compound) {
             final Class rawClass = compound.getRawClass();
             if (rawClass.isArray()) {
                 return arrayFunction(rawClass);
@@ -272,7 +271,7 @@ public final class SmartRandom {
         private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
 
         @SuppressWarnings("rawtypes")
-        private final Map<Generic.Compound, Supplier<Function>> methods = new HashMap<>(0);
+        private final Map<Type.Compound, Supplier<Function>> methods = new HashMap<>(0);
 
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
@@ -300,7 +299,7 @@ public final class SmartRandom {
          * using a given {@link SmartRandom} instance.
          *
          * @see #put(Class, Supplier)
-         * @see #put(Generic, Function)
+         * @see #put(Type, Function)
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method) {
             return put(resultClass, () -> method);
@@ -314,20 +313,20 @@ public final class SmartRandom {
          * and must be instantiated along to a {@link SmartRandom} instance.
          *
          * @see #put(Class, Function)
-         * @see #put(Generic, Supplier)
+         * @see #put(Type, Supplier)
          */
         public final <T> Builder put(final Class<T> resultClass, final Supplier<Function<SmartRandom, T>> supplier) {
-            return put(new Generic.Compound(resultClass), supplier);
+            return put(new Type.Compound(resultClass), supplier);
         }
 
         /**
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          *
-         * @see #put(Generic, Supplier)
+         * @see #put(Type, Supplier)
          * @see #put(Class, Function)
          */
-        public final <T> Builder put(final Generic<T> resultType, final Function<SmartRandom, T> method) {
+        public final <T> Builder put(final Type<T> resultType, final Function<SmartRandom, T> method) {
             return put(resultType, () -> method);
         }
 
@@ -335,22 +334,22 @@ public final class SmartRandom {
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          * <p>
-         * In contrast to {@link #put(Generic, Function)} this should be used, when the method itself is not thread-safe
+         * In contrast to {@link #put(Type, Function)} this should be used, when the method itself is not thread-safe
          * and must be instantiated along to a {@link SmartRandom} instance.
          *
-         * @see #put(Generic, Function)
+         * @see #put(Type, Function)
          * @see #put(Class, Supplier)
          */
-        public final <T> Builder put(final Generic<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
+        public final <T> Builder put(final Type<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
             return put(resultType.getCompound(), supplier);
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
-        private Builder put(final Generic.Compound compound, final Supplier supplier) {
-            final Consumer<Generic.Compound> put = cmp -> methods.put(cmp, supplier);
+        private Builder put(final Type.Compound compound, final Supplier supplier) {
+            final Consumer<Type.Compound> put = cmp -> methods.put(cmp, supplier);
             put.accept(compound);
             Optional.ofNullable(PRIME_CLASSES.get(compound.getRawClass()))
-                    .map(Generic.Compound::new)
+                    .map(Type.Compound::new)
                     .ifPresent(put);
             return this;
         }

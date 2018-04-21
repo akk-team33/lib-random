@@ -7,16 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GenericTest {
+public class TypeTest {
 
-    private static final Generic<List<String>> LIST_OF_STRING =
-            new Generic<List<String>>() {
+    private static final Type<List<String>> LIST_OF_STRING =
+            new Type<List<String>>() {
             };
-    private static final Generic<String> STRING_GENERIC =
-            new Generic<String>() {
+    private static final Type<String> STRING_TYPE =
+            new Type<String>() {
             };
-    private static final Generic<Map<List<String>, Map<Double, Set<Integer>>>> MAP_OF_LIST_TO_MAP =
-            new Generic<Map<List<String>, Map<Double, Set<Integer>>>>() {
+    private static final Type<Map<List<String>, Map<Double, Set<Integer>>>> MAP_OF_LIST_TO_MAP =
+            new Type<Map<List<String>, Map<Double, Set<Integer>>>>() {
             };
 
     @Test(expected = IllegalStateException.class)
@@ -27,22 +27,22 @@ public class GenericTest {
 
     @Test(expected = IllegalStateException.class)
     public final void failIndirect() {
-        final Generic<?> indirect = new Indirect();
+        final Type<?> indirect = new Indirect();
         Assert.fail("expected to Fail but was " + indirect.getCompound());
     }
 
     @Test
     public final void simple() {
         Assert.assertEquals(
-                new Generic.Compound(String.class),
-                STRING_GENERIC.getCompound()
+                new Type.Compound(String.class),
+                STRING_TYPE.getCompound()
         );
     }
 
     @Test
     public final void list() {
         Assert.assertEquals(
-                new Generic.Compound(List.class, new Generic.Compound(String.class)),
+                new Type.Compound(List.class, new Type.Compound(String.class)),
                 LIST_OF_STRING.getCompound()
         );
     }
@@ -51,8 +51,8 @@ public class GenericTest {
     @Test
     public final void rawList() {
         Assert.assertEquals(
-                new Generic.Compound(List.class),
-                new Generic<List>() {
+                new Type.Compound(List.class),
+                new Type<List>() {
                 }.getCompound()
         );
     }
@@ -60,13 +60,13 @@ public class GenericTest {
     @Test
     public final void map() {
         Assert.assertEquals(
-                new Generic.Compound(
+                new Type.Compound(
                         Map.class,
-                        new Generic.Compound(List.class, new Generic.Compound(String.class)),
-                        new Generic.Compound(
+                        new Type.Compound(List.class, new Type.Compound(String.class)),
+                        new Type.Compound(
                                 Map.class,
-                                new Generic.Compound(Double.class),
-                                new Generic.Compound(Set.class, new Generic.Compound(Integer.class)))),
+                                new Type.Compound(Double.class),
+                                new Type.Compound(Set.class, new Type.Compound(Integer.class)))),
                 MAP_OF_LIST_TO_MAP.getCompound()
         );
     }
@@ -84,7 +84,7 @@ public class GenericTest {
         );
     }
 
-    private static class Direct<T> extends Generic<T> {
+    private static class Direct<T> extends Type<T> {
     }
 
     @SuppressWarnings("EmptyClass")
@@ -92,14 +92,14 @@ public class GenericTest {
     }
 
     @SuppressWarnings("EmptyClass")
-    private static class StringList1 extends Generic<List<String>> {
+    private static class StringList1 extends Type<List<String>> {
     }
 
     @SuppressWarnings("EmptyClass")
-    private static class StringSet1 extends Generic<Set<String>> {
+    private static class StringSet1 extends Type<Set<String>> {
     }
 
     @SuppressWarnings("EmptyClass")
-    private static class StringSet2 extends Generic<Set<String>> {
+    private static class StringSet2 extends Type<Set<String>> {
     }
 }

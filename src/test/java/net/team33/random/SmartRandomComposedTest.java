@@ -22,13 +22,13 @@ import static org.junit.Assert.assertTrue;
 public class SmartRandomComposedTest {
 
     private static final int MAX_RETRY = 1000;
-    private static final Generic<List<String>> LIST_OF_STRING = new Generic<List<String>>() {
+    static final Type<Map<String, List<String>>> MAP_STRING_TO_LIST = new Type<Map<String, List<String>>>() {
     };
-    private static final Generic<Map<BigInteger, List<String>>> MAP_INTEGER_TO_LIST = new Generic<Map<BigInteger, List<String>>>() {
+    private static final Type<List<String>> LIST_OF_STRING = new Type<List<String>>() {
     };
-    static final Generic<Map<String, List<String>>> MAP_STRING_TO_LIST = new Generic<Map<String, List<String>>>() {
+    private static final Type<Map<BigInteger, List<String>>> MAP_INTEGER_TO_LIST = new Type<Map<BigInteger, List<String>>>() {
     };
-    private static final Generic<Map<BigInteger, BigDecimal>> MAP_INTEGER_TO_DECIMAL = new Generic<Map<BigInteger, BigDecimal>>() {
+    private static final Type<Map<BigInteger, BigDecimal>> MAP_INTEGER_TO_DECIMAL = new Type<Map<BigInteger, BigDecimal>>() {
     };
     static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
             .put(MAP_INTEGER_TO_LIST, SmartRandomComposedTest::newIntegerToListMap)
