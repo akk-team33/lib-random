@@ -2,9 +2,11 @@ package net.team33.random;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,7 +22,7 @@ public abstract class Generic<T> {
 
     protected Generic() {
         try {
-            compound = new Compound(typeArgument(getClass()));
+            compound = new Compound(typeArgument(getClass()), Collections.emptyMap());
         } catch (final RuntimeException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
@@ -71,27 +73,42 @@ public abstract class Generic<T> {
 
         CLASS {
             @Override
-            Class<?> rawClass(final Type type) {
+            Class<?> rawClass(final Type type, final Map<String, Compound> map) {
                 return (Class<?>) type;
             }
 
             @Override
-            List<Compound> parameters(final Type type) {
+            List<Compound> parameters(final Type type, final Map<String, Compound> map) {
                 return Collections.emptyList();
             }
         },
 
         PARAMETERIZED_TYPE {
             @Override
-            Class<?> rawClass(final Type type) {
+            Class<?> rawClass(final Type type, final Map<String, Compound> map) {
                 return (Class<?>) ((ParameterizedType) type).getRawType();
             }
 
             @Override
-            List<Compound> parameters(final Type type) {
+            List<Compound> parameters(final Type type, final Map<String, Compound> map) {
                 return Stream.of(((ParameterizedType) type).getActualTypeArguments())
-                        .map(Compound::new)
+                        .map(arg -> new Compound(arg, map))
                         .collect(Collectors.toList());
+            }
+        },
+
+        TYPE_VARIABLE {
+            @Override
+            Class<?> rawClass(final Type type, final Map<String, Compound> map) {
+                return Optional.ofNullable(map.get(((TypeVariable<?>) type).getName()))
+                        .map(Compound::getRawClass)
+                        .orElseThrow(() -> new IllegalStateException(
+                                String.format("<%s> not in map %s", type, map)));
+            }
+
+            @Override
+            List<Compound> parameters(final Type type, final Map<String, Compound> map) {
+                return map.get(type.getTypeName()).getParameters();
             }
         };
 
@@ -101,13 +118,15 @@ public abstract class Generic<T> {
                 return CLASS;
             else if (type instanceof ParameterizedType)
                 return PARAMETERIZED_TYPE;
+            else if (type instanceof TypeVariable)
+                return TYPE_VARIABLE;
             else
                 throw new IllegalArgumentException("Unsupported type: " + type.getClass().getCanonicalName());
         }
 
-        abstract Class<?> rawClass(final Type type);
+        abstract Class<?> rawClass(final Type type, final Map<String, Compound> map);
 
-        abstract List<Compound> parameters(final Type type);
+        abstract List<Compound> parameters(final Type type, final Map<String, Compound> map);
     }
 
     public static class Compound {
@@ -133,8 +152,8 @@ public abstract class Generic<T> {
             }
         }
 
-        private Compound(final Type type, final Spec spec) {
-            this(spec.rawClass(type), spec.parameters(type));
+        private Compound(final Type type, final Spec spec, final Map<String, Compound> map) {
+            this(spec.rawClass(type, map), spec.parameters(type, map));
         }
 
         @SuppressWarnings("OverloadedVarargsMethod")
@@ -142,8 +161,8 @@ public abstract class Generic<T> {
             this(rawClass, asList(parameters));
         }
 
-        public Compound(final Type type) {
-            this(type, Spec.valueOf(type));
+        public Compound(final Type type, final Map<String, Compound> map) {
+            this(type, Spec.valueOf(type), map);
         }
 
         @SuppressWarnings("rawtypes")

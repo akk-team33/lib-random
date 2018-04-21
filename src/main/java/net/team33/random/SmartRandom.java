@@ -4,14 +4,15 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +22,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
 /**
  * An instrument to randomly generate instances of in principle arbitrary classes.
@@ -127,18 +131,29 @@ public final class SmartRandom {
      * @return The (modified) target.
      */
     public final <T> T setAll(final T target, final Predicate<Method> filter) {
+        final Map<String, Generic.Compound> map = newMap(target.getClass());
         Reflect.publicSetters(target.getClass())
                 .filter(filter)
                 .forEach(setter -> {
                     try {
                         final Type parameterType = setter.getGenericParameterTypes()[0];
-                        final Object value = any(new Generic.Compound(parameterType));
+                        final Object value = any(new Generic.Compound(parameterType, map));
                         setter.invoke(target, value);
                     } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + setter + ">", caught);
                     }
                 });
         return target;
+    }
+
+    private static Map<String, Generic.Compound> newMap(final Class<?> aClass) {
+        final List<Generic.Compound> actual = new Generic.Compound(aClass.getGenericSuperclass(), emptyMap())
+                .getParameters();
+        final TypeVariable<? extends Class<?>>[] formal = aClass.getSuperclass().getTypeParameters();
+        final Map<String, Generic.Compound> result = new HashMap<>(actual.size());
+        for (int i = 0; i < actual.size(); ++i)
+            result.put(formal[i].getName(), actual.get(i));
+        return result;
     }
 
     /**
@@ -158,12 +173,13 @@ public final class SmartRandom {
      * @return The (modified) target.
      */
     public final <T> T setAllFields(final T target, final Predicate<Field> filter) {
+        final Map<String, Generic.Compound> map = newMap(target.getClass());
         Reflect.instanceFields(target.getClass())
                 .filter(filter)
                 .forEach(field -> {
                     try {
                         final Type parameterType = field.getGenericType();
-                        field.set(target, any(new Generic.Compound(parameterType)));
+                        field.set(target, any(new Generic.Compound(parameterType, map)));
                     } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + field + ">", caught);
                     }
@@ -409,7 +425,7 @@ public final class SmartRandom {
                     map.put(pair[0], pair[1]);
                     map.put(pair[1], pair[0]);
                 };
-                return Collections.unmodifiableMap(Stream
+                return unmodifiableMap(Stream
                         .of(COUPLED_CLASSES)
                         .collect(HashMap::new, putPair, Map::putAll));
             }
