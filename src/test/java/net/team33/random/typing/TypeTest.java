@@ -1,4 +1,4 @@
-package net.team33.random;
+package net.team33.random.typing;
 
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,5 +1,7 @@
 package net.team33.random;
 
+import net.team33.random.typing.Type;
+
 import java.util.function.Function;
 
 /**
