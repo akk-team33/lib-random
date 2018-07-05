@@ -22,28 +22,28 @@ public class TypeTest {
     @Test(expected = IllegalStateException.class)
     public final void failDirectGeneric() {
         final Direct<String> direct = new Direct<>();
-        Assert.fail("expected to Fail but was " + direct.getCompound());
+        Assert.fail("expected to Fail but was " + direct.getSetup());
     }
 
     @Test(expected = IllegalStateException.class)
     public final void failIndirect() {
         final Type<?> indirect = new Indirect();
-        Assert.fail("expected to Fail but was " + indirect.getCompound());
+        Assert.fail("expected to Fail but was " + indirect.getSetup());
     }
 
     @Test
     public final void simple() {
         Assert.assertEquals(
-                new Type.Compound(String.class),
-                STRING_TYPE.getCompound()
+                new TypeSetup(String.class),
+                STRING_TYPE.getSetup()
         );
     }
 
     @Test
     public final void list() {
         Assert.assertEquals(
-                new Type.Compound(List.class, new Type.Compound(String.class)),
-                LIST_OF_STRING.getCompound()
+                new TypeSetup(List.class, new TypeSetup(String.class)),
+                LIST_OF_STRING.getSetup()
         );
     }
 
@@ -51,23 +51,23 @@ public class TypeTest {
     @Test
     public final void rawList() {
         Assert.assertEquals(
-                new Type.Compound(List.class),
+                new TypeSetup(List.class),
                 new Type<List>() {
-                }.getCompound()
+                }.getSetup()
         );
     }
 
     @Test
     public final void map() {
         Assert.assertEquals(
-                new Type.Compound(
+                new TypeSetup(
                         Map.class,
-                        new Type.Compound(List.class, new Type.Compound(String.class)),
-                        new Type.Compound(
+                        new TypeSetup(List.class, new TypeSetup(String.class)),
+                        new TypeSetup(
                                 Map.class,
-                                new Type.Compound(Double.class),
-                                new Type.Compound(Set.class, new Type.Compound(Integer.class)))),
-                MAP_OF_LIST_TO_MAP.getCompound()
+                                new TypeSetup(Double.class),
+                                new TypeSetup(Set.class, new TypeSetup(Integer.class)))),
+                MAP_OF_LIST_TO_MAP.getSetup()
         );
     }
 

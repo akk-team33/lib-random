@@ -13,41 +13,41 @@ enum Variant {
 
     CLASS {
         @Override
-        Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Type.Compound> map) {
+        Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
             return (Class<?>) type;
         }
 
         @Override
-        List<Type.Compound> parameters(final java.lang.reflect.Type type, final Map<String, Type.Compound> map) {
+        List<TypeSetup> parameters(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
             return Collections.emptyList();
         }
     },
 
     PARAMETERIZED_TYPE {
         @Override
-        Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Type.Compound> map) {
+        Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
             return (Class<?>) ((ParameterizedType) type).getRawType();
         }
 
         @Override
-        List<Type.Compound> parameters(final java.lang.reflect.Type type, final Map<String, Type.Compound> map) {
+        List<TypeSetup> parameters(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
             return Stream.of(((ParameterizedType) type).getActualTypeArguments())
-                    .map(arg -> new Type.Compound(arg, map))
+                    .map(arg -> new TypeSetup(arg, map))
                     .collect(Collectors.toList());
         }
     },
 
     TYPE_VARIABLE {
         @Override
-        Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Type.Compound> map) {
+        Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
             return Optional.ofNullable(map.get(((TypeVariable<?>) type).getName()))
-                    .map(Type.Compound::getRawClass)
+                    .map(TypeSetup::getRawClass)
                     .orElseThrow(() -> new IllegalStateException(
                             String.format("<%s> is not in %s", type, map)));
         }
 
         @Override
-        List<Type.Compound> parameters(final java.lang.reflect.Type type, final Map<String, Type.Compound> map) {
+        List<TypeSetup> parameters(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
             return map.get(type.getTypeName()).getParameters();
         }
     };
@@ -64,7 +64,7 @@ enum Variant {
             throw new IllegalArgumentException("Unsupported type: " + type.getClass().getCanonicalName());
     }
 
-    abstract Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Type.Compound> map);
+    abstract Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, TypeSetup> map);
 
-    abstract List<Type.Compound> parameters(final java.lang.reflect.Type type, final Map<String, Type.Compound> map);
+    abstract List<TypeSetup> parameters(final java.lang.reflect.Type type, final Map<String, TypeSetup> map);
 }

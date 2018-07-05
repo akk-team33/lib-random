@@ -1,32 +1,23 @@
 package net.team33.random.typing;
 
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableList;
 
 @SuppressWarnings({"AbstractClassWithOnlyOneDirectInheritor", "AbstractClassWithoutAbstractMethods", "unused"})
 public abstract class Type<T> {
 
-    private final Compound compound;
+    private final TypeSetup setup;
 
     protected Type() {
         try {
-            compound = new Compound(typeArgument(getClass()), Collections.emptyMap());
+            setup = new TypeSetup(typeArgument(getClass()), Collections.emptyMap());
         } catch (final RuntimeException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
     private Type(final Class<T> aClass) {
-        compound = new Compound(aClass);
+        setup = new TypeSetup(aClass);
     }
 
     private static java.lang.reflect.Type typeArgument(final Class<?> thisClass) {
@@ -56,95 +47,23 @@ public abstract class Type<T> {
         };
     }
 
-    public final Compound getCompound() {
-        return compound;
+    public final TypeSetup getSetup() {
+        return setup;
     }
 
     @Override
     public final boolean equals(final Object obj) {
-        return (this == obj) || ((obj instanceof Type<?>) && compound.equals(((Type<?>) obj).compound));
+        return (this == obj) || ((obj instanceof Type<?>) && setup.equals(((Type<?>) obj).setup));
     }
 
     @Override
     public final int hashCode() {
-        return compound.hashCode();
+        return setup.hashCode();
     }
 
     @Override
     public final String toString() {
-        return compound.toString();
+        return setup.toString();
     }
 
-    public static class Compound {
-
-        @SuppressWarnings("rawtypes")
-        private final Class rawClass;
-        private final List<Compound> parameters;
-        private transient volatile String presentation;
-
-        private Compound(final Class<?> rawClass, final List<Compound> parameters) {
-            this.rawClass = rawClass;
-            final int expectedLength = rawClass.getTypeParameters().length;
-            final int actualLength = parameters.size();
-            if (0 == actualLength) {
-                this.parameters = Collections.emptyList();
-            } else if (expectedLength == actualLength) {
-                this.parameters = unmodifiableList(new ArrayList<>(parameters));
-            } else {
-                throw new IllegalArgumentException(
-                        String.format(
-                                "class %s needs %d type parameter(s) but was %d",
-                                rawClass.getCanonicalName(), expectedLength, actualLength));
-            }
-        }
-
-        private Compound(final java.lang.reflect.Type type, final Variant variant, final Map<String, Compound> map) {
-            this(variant.rawClass(type, map), variant.parameters(type, map));
-        }
-
-        @SuppressWarnings("OverloadedVarargsMethod")
-        public Compound(final Class<?> rawClass, final Compound... parameters) {
-            this(rawClass, asList(parameters));
-        }
-
-        public Compound(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-            this(type, Variant.valueOf(type), map);
-        }
-
-        @SuppressWarnings("rawtypes")
-        public final Class getRawClass() {
-            return rawClass;
-        }
-
-        public final List<Compound> getParameters() {
-            // is already unmodifiable ...
-            // noinspection AssignmentOrReturnOfFieldWithMutableType
-            return parameters;
-        }
-
-        @Override
-        public final int hashCode() {
-            return Objects.hash(rawClass, parameters);
-        }
-
-        @Override
-        public final boolean equals(final Object obj) {
-            return (this == obj) || ((obj instanceof Type.Compound) && isEqual((Compound) obj));
-        }
-
-        private boolean isEqual(final Compound other) {
-            return rawClass.equals(other.rawClass) && parameters.equals(other.parameters);
-        }
-
-        @Override
-        public final String toString() {
-            return Optional.ofNullable(presentation).orElseGet(() -> {
-                presentation = rawClass.getSimpleName() + (
-                        parameters.isEmpty() ? "" : parameters.stream()
-                                .map(Compound::toString)
-                                .collect(Collectors.joining(", ", "<", ">")));
-                return presentation;
-            });
-        }
-    }
 }

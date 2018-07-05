@@ -1,6 +1,6 @@
 package net.team33.random;
 
-import net.team33.random.typing.Type;
+import net.team33.random.typing.TypeSetup;
 
 import java.util.function.Function;
 
@@ -14,9 +14,9 @@ public enum UnknownHandling {
      */
     FAIL {
         @Override
-        public <T> Function<SmartRandom, T> function(final Type.Compound compound) {
+        public <T> Function<SmartRandom, T> function(final TypeSetup setup) {
             return random -> {
-                throw new IllegalArgumentException("no method specified for " + compound);
+                throw new IllegalArgumentException("no method specified for " + setup);
             };
         }
     },
@@ -26,10 +26,10 @@ public enum UnknownHandling {
      */
     RETURN_NULL {
         @Override
-        public <T> Function<SmartRandom, T> function(final Type.Compound compound) {
+        public <T> Function<SmartRandom, T> function(final TypeSetup setup) {
             return random -> null;
         }
     };
 
-    public abstract <T> Function<SmartRandom, T> function(final Type.Compound compound);
+    public abstract <T> Function<SmartRandom, T> function(final TypeSetup setup);
 }
