@@ -7,16 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class TypeTest {
+public class TypingTest {
 
-    private static final Type<List<String>> LIST_OF_STRING =
-            new Type<List<String>>() {
+    private static final Typing<List<String>> LIST_OF_STRING =
+            new Typing<List<String>>() {
             };
-    private static final Type<String> STRING_TYPE =
-            new Type<String>() {
+    private static final Typing<String> STRING_TYPE =
+            new Typing<String>() {
             };
-    private static final Type<Map<List<String>, Map<Double, Set<Integer>>>> MAP_OF_LIST_TO_MAP =
-            new Type<Map<List<String>, Map<Double, Set<Integer>>>>() {
+    private static final Typing<Map<List<String>, Map<Double, Set<Integer>>>> MAP_OF_LIST_TO_MAP =
+            new Typing<Map<List<String>, Map<Double, Set<Integer>>>>() {
             };
 
     @Test(expected = IllegalStateException.class)
@@ -27,7 +27,7 @@ public class TypeTest {
 
     @Test(expected = IllegalStateException.class)
     public final void failIndirect() {
-        final Type<?> indirect = new Indirect();
+        final Typing<?> indirect = new Indirect();
         Assert.fail("expected to Fail but was " + indirect.getSetup());
     }
 
@@ -52,7 +52,7 @@ public class TypeTest {
     public final void rawList() {
         Assert.assertEquals(
                 new TypeSetup(List.class),
-                new Type<List>() {
+                new Typing<List>() {
                 }.getSetup()
         );
     }
@@ -84,7 +84,7 @@ public class TypeTest {
         );
     }
 
-    private static class Direct<T> extends Type<T> {
+    private static class Direct<T> extends Typing<T> {
     }
 
     @SuppressWarnings("EmptyClass")
@@ -92,14 +92,14 @@ public class TypeTest {
     }
 
     @SuppressWarnings("EmptyClass")
-    private static class StringList1 extends Type<List<String>> {
+    private static class StringList1 extends Typing<List<String>> {
     }
 
     @SuppressWarnings("EmptyClass")
-    private static class StringSet1 extends Type<Set<String>> {
+    private static class StringSet1 extends Typing<Set<String>> {
     }
 
     @SuppressWarnings("EmptyClass")
-    private static class StringSet2 extends Type<Set<String>> {
+    private static class StringSet2 extends Typing<Set<String>> {
     }
 }

@@ -1,7 +1,7 @@
 package net.team33.random;
 
-import net.team33.random.typing.Type;
 import net.team33.random.typing.TypeSetup;
+import net.team33.random.typing.Typing;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -95,7 +95,7 @@ public final class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Class<T> resultClass) {
-        return any(Type.of(resultClass));
+        return any(Typing.of(resultClass));
     }
 
     /**
@@ -104,7 +104,7 @@ public final class SmartRandom {
      * Typically the result is not {@code null} but may be {@code null} in some circumstances based on the
      * configuration of this {@link SmartRandom}.
      */
-    public final <T> T any(final Type<T> resultType) {
+    public final <T> T any(final Typing<T> resultType) {
         return any(resultType.getSetup());
     }
 
@@ -330,10 +330,10 @@ public final class SmartRandom {
          * using a given {@link SmartRandom} instance.
          *
          * @see #put(Class, Supplier)
-         * @see #put(Type, Function)
+         * @see #put(Typing, Function)
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method) {
-            return put(Type.of(resultClass), () -> method);
+            return put(Typing.of(resultClass), () -> method);
         }
 
         /**
@@ -344,20 +344,20 @@ public final class SmartRandom {
          * and must be instantiated along to a {@link SmartRandom} instance.
          *
          * @see #put(Class, Function)
-         * @see #put(Type, Supplier)
+         * @see #put(Typing, Supplier)
          */
         public final <T> Builder put(final Class<T> resultClass, final Supplier<Function<SmartRandom, T>> supplier) {
-            return put(Type.of(resultClass), supplier);
+            return put(Typing.of(resultClass), supplier);
         }
 
         /**
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          *
-         * @see #put(Type, Supplier)
+         * @see #put(Typing, Supplier)
          * @see #put(Class, Function)
          */
-        public final <T> Builder put(final Type<T> resultType, final Function<SmartRandom, T> method) {
+        public final <T> Builder put(final Typing<T> resultType, final Function<SmartRandom, T> method) {
             return put(resultType.getSetup(), () -> method);
         }
 
@@ -365,13 +365,13 @@ public final class SmartRandom {
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          * <p>
-         * In contrast to {@link #put(Type, Function)} this should be used, when the method itself is not thread-safe
+         * In contrast to {@link #put(Typing, Function)} this should be used, when the method itself is not thread-safe
          * and must be instantiated along to a {@link SmartRandom} instance.
          *
-         * @see #put(Type, Function)
+         * @see #put(Typing, Function)
          * @see #put(Class, Supplier)
          */
-        public final <T> Builder put(final Type<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
+        public final <T> Builder put(final Typing<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
             return put(resultType.getSetup(), supplier);
         }
 

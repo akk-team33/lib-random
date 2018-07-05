@@ -1,5 +1,6 @@
 package net.team33.random.typing;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +35,7 @@ public class TypeSetup {
         }
     }
 
-    private TypeSetup(final java.lang.reflect.Type type, final Variant variant, final Map<String, TypeSetup> map) {
+    private TypeSetup(final Type type, final Variant variant, final Map<String, TypeSetup> map) {
         this(variant.rawClass(type, map), variant.parameters(type, map));
     }
 
@@ -43,7 +44,7 @@ public class TypeSetup {
         this(rawClass, asList(parameters));
     }
 
-    public TypeSetup(final java.lang.reflect.Type type, final Map<String, TypeSetup> map) {
+    public TypeSetup(final Type type, final Map<String, TypeSetup> map) {
         this(type, Variant.valueOf(type), map);
     }
 

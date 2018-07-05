@@ -1,7 +1,7 @@
 package net.team33.random;
 
 import net.team33.random.test.DataObject;
-import net.team33.random.typing.Type;
+import net.team33.random.typing.Typing;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -21,14 +21,18 @@ import static org.junit.Assert.assertTrue;
 public class SmartRandomComposedTest {
 
     private static final int MAX_RETRY = 1000;
-    static final Type<Map<String, List<String>>> MAP_STRING_TO_LIST = new Type<Map<String, List<String>>>() {
-    };
-    private static final Type<List<String>> LIST_OF_STRING = new Type<List<String>>() {
-    };
-    private static final Type<Map<BigInteger, List<String>>> MAP_INTEGER_TO_LIST = new Type<Map<BigInteger, List<String>>>() {
-    };
-    private static final Type<Map<BigInteger, BigDecimal>> MAP_INTEGER_TO_DECIMAL = new Type<Map<BigInteger, BigDecimal>>() {
-    };
+    static final Typing<Map<String, List<String>>> MAP_STRING_TO_LIST =
+            new Typing<Map<String, List<String>>>() {
+            };
+    private static final Typing<List<String>> LIST_OF_STRING =
+            new Typing<List<String>>() {
+            };
+    private static final Typing<Map<BigInteger, List<String>>> MAP_INTEGER_TO_LIST =
+            new Typing<Map<BigInteger, List<String>>>() {
+            };
+    private static final Typing<Map<BigInteger, BigDecimal>> MAP_INTEGER_TO_DECIMAL =
+            new Typing<Map<BigInteger, BigDecimal>>() {
+            };
     static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
             .put(MAP_INTEGER_TO_LIST, SmartRandomComposedTest::newIntegerToListMap)
             .put(MAP_INTEGER_TO_DECIMAL, rnd -> new HashMap<>(0))
