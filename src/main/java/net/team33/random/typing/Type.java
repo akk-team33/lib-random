@@ -1,7 +1,6 @@
 package net.team33.random.typing;
 
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,7 +8,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
@@ -77,66 +75,6 @@ public abstract class Type<T> {
         return compound.toString();
     }
 
-    private enum Spec {
-
-        CLASS {
-            @Override
-            Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-                return (Class<?>) type;
-            }
-
-            @Override
-            List<Compound> parameters(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-                return Collections.emptyList();
-            }
-        },
-
-        PARAMETERIZED_TYPE {
-            @Override
-            Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-                return (Class<?>) ((ParameterizedType) type).getRawType();
-            }
-
-            @Override
-            List<Compound> parameters(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-                return Stream.of(((ParameterizedType) type).getActualTypeArguments())
-                        .map(arg -> new Compound(arg, map))
-                        .collect(Collectors.toList());
-            }
-        },
-
-        TYPE_VARIABLE {
-            @Override
-            Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-                return Optional.ofNullable(map.get(((TypeVariable<?>) type).getName()))
-                        .map(Compound::getRawClass)
-                        .orElseThrow(() -> new IllegalStateException(
-                                String.format("<%s> is not in %s", type, map)));
-            }
-
-            @Override
-            List<Compound> parameters(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-                return map.get(type.getTypeName()).getParameters();
-            }
-        };
-
-        @SuppressWarnings({"StaticMethodOnlyUsedInOneClass", "ChainOfInstanceofChecks"})
-        public static Spec valueOf(final java.lang.reflect.Type type) {
-            if (type instanceof Class)
-                return CLASS;
-            else if (type instanceof ParameterizedType)
-                return PARAMETERIZED_TYPE;
-            else if (type instanceof TypeVariable)
-                return TYPE_VARIABLE;
-            else
-                throw new IllegalArgumentException("Unsupported type: " + type.getClass().getCanonicalName());
-        }
-
-        abstract Class<?> rawClass(final java.lang.reflect.Type type, final Map<String, Compound> map);
-
-        abstract List<Compound> parameters(final java.lang.reflect.Type type, final Map<String, Compound> map);
-    }
-
     public static class Compound {
 
         @SuppressWarnings("rawtypes")
@@ -160,8 +98,8 @@ public abstract class Type<T> {
             }
         }
 
-        private Compound(final java.lang.reflect.Type type, final Spec spec, final Map<String, Compound> map) {
-            this(spec.rawClass(type, map), spec.parameters(type, map));
+        private Compound(final java.lang.reflect.Type type, final Variant variant, final Map<String, Compound> map) {
+            this(variant.rawClass(type, map), variant.parameters(type, map));
         }
 
         @SuppressWarnings("OverloadedVarargsMethod")
@@ -170,7 +108,7 @@ public abstract class Type<T> {
         }
 
         public Compound(final java.lang.reflect.Type type, final Map<String, Compound> map) {
-            this(type, Spec.valueOf(type), map);
+            this(type, Variant.valueOf(type), map);
         }
 
         @SuppressWarnings("rawtypes")
