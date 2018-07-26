@@ -1,6 +1,8 @@
-package net.team33.random;
+package net.team33.test.random.v2;
 
 import com.google.common.base.CaseFormat;
+import net.team33.random.Limited;
+import net.team33.random.SmartRandom;
 import net.team33.test.random.shared.DataObject;
 import net.team33.test.random.shared.Recursive;
 import org.junit.Assert;

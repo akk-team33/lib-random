@@ -1,4 +1,4 @@
-package net.team33.random.test;
+package net.team33.test.random.shared;
 
 @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
 public class Recursive {

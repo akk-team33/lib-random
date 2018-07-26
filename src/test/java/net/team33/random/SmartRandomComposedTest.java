@@ -1,7 +1,7 @@
 package net.team33.random;
 
-import net.team33.random.test.DataObject;
 import net.team33.random.typing.Typing;
+import net.team33.test.random.shared.DataObject;
 import org.junit.Assert;
 import org.junit.Test;
 
