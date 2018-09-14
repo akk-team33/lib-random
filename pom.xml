@@ -8,6 +8,13 @@
     <description>Team33 Randomizer library</description>
     <dependencies>
         <dependency>
+            <groupId>de.team33.libs</groupId>
+            <artifactId>lib-typing</artifactId>
+            <version>8.1.2</version>
+            <type>jar</type>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>23.6-jre</version>
