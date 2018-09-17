@@ -1,7 +1,7 @@
 package de.team33.test.random.v1;
 
 import de.team33.libs.random.v1.SmartRandom;
-import de.team33.libs.typing.v1.DefType;
+import de.team33.libs.typing.v2.TypeDef;
 import de.team33.test.random.shared.Generic;
 import org.junit.Test;
 
@@ -15,14 +15,14 @@ import static org.junit.Assert.assertTrue;
 
 public class SmartRandomTest {
 
-    private static final DefType<Generic<String, List<String>, Map<String, List<String>>>> GENERIC_TYPE =
-            new DefType<Generic<String, List<String>, Map<String, List<String>>>>() {
+    private static final TypeDef<Generic<String, List<String>, Map<String, List<String>>>> GENERIC_TYPE =
+            new TypeDef<Generic<String, List<String>, Map<String, List<String>>>>() {
             };
-    private static final DefType<List<String>> LIST_TYPE =
-            new DefType<List<String>>() {
+    private static final TypeDef<List<String>> LIST_TYPE =
+            new TypeDef<List<String>>() {
             };
-    private static final DefType<Map<String, List<String>>> MAP_TYPE =
-            new DefType<Map<String, List<String>>>() {
+    private static final TypeDef<Map<String, List<String>>> MAP_TYPE =
+            new TypeDef<Map<String, List<String>>>() {
             };
 
     @Test
@@ -40,7 +40,7 @@ public class SmartRandomTest {
                                 rnd.any(LIST_TYPE)
                         ))
                         .put(GENERIC_TYPE, (rnd, type) -> rnd.getCharged(type)
-                                .setFields(new Generic<String, List<String>, Map<String, List<String>>>()))
+                                .setFields(new Generic<>()))
                         .prepare().get().any(GENERIC_TYPE);
         assertInt(result.getTheInt());
         assertString(result.getTheString());

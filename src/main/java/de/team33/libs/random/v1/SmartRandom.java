@@ -1,6 +1,7 @@
 package de.team33.libs.random.v1;
 
-import de.team33.libs.typing.v1.DefType;
+import de.team33.libs.typing.v2.TypeDef;
+import de.team33.libs.typing.v2.TypeDesc;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,31 +30,35 @@ import static java.util.Collections.unmodifiableMap;
 public final class SmartRandom {
 
     @SuppressWarnings("rawtypes")
-    private final Map<DefType, BiFunction> methods;
+    private final Map<TypeDesc, BiFunction> methods;
 
     private SmartRandom(final Template template) {
         methods = template.methods;
     }
 
     public final <T> T any(final Class<T> resultClass) {
-        return any(DefType.of(resultClass));
+        return any(TypeDef.of(resultClass));
     }
 
-    public final <T> T any(final DefType<T> resultType) {
+    public final <T> T any(final TypeDef<T> resultType) {
         //noinspection unchecked
-        final BiFunction<SmartRandom, DefType<T>, T> function = Optional.ofNullable(methods.get(resultType))
-                .orElseThrow(() -> new IllegalArgumentException("No method specified for " + resultType));
-        return function.apply(this, resultType);
+        return (T) method(resultType).apply(this, resultType);
     }
 
-    public final <T> ChargedRandom<T> getCharged(final DefType<T> resultType) {
-        return new ChargedRandom<>(resultType, this::any);
+    private BiFunction<SmartRandom, TypeDesc, ?> method(final TypeDesc resultType) {
+        //noinspection unchecked
+        return Optional.ofNullable(methods.get(resultType))
+                .orElseThrow(() -> new IllegalArgumentException("No method specified for " + resultType));
+    }
+
+    public final ChargedRandom getCharged(final TypeDesc resultType) {
+        return new ChargedRandom(resultType, type -> method(type).apply(this, resultType));
     }
 
     public static final class Template implements Supplier<SmartRandom> {
 
         @SuppressWarnings("rawtypes")
-        private final Map<DefType, BiFunction> methods;
+        private final Map<TypeDesc, BiFunction> methods;
 
         private Template(final Builder builder) {
             methods = new ConcurrentHashMap<>(builder.methods);
@@ -82,10 +87,10 @@ public final class SmartRandom {
     public static final class Builder {
 
         @SuppressWarnings("rawtypes")
-        private static final Map<DefType, List> ALIASES = Init.aliases();
+        private static final Map<TypeDesc, List> ALIASES = Init.aliases();
 
         @SuppressWarnings("rawtypes")
-        private final Map<DefType, BiFunction> methods;
+        private final Map<TypeDesc, BiFunction> methods;
 
         private Builder(final Template template) {
             methods = new HashMap<>(template.methods);
@@ -103,18 +108,18 @@ public final class SmartRandom {
             return prepare().get();
         }
 
-        public final <T> Builder put(final Class<T> resultClass, final BiFunction<SmartRandom, DefType<T>, T> method) {
-            return put(DefType.of(resultClass), method);
+        public final <T> Builder put(final Class<T> resultClass, final BiFunction<SmartRandom, TypeDef<T>, T> method) {
+            return put(TypeDef.of(resultClass), method);
         }
 
-        public final <T> Builder put(final DefType<T> resultType, final BiFunction<SmartRandom, DefType<T>, T> method) {
+        public final <T> Builder put(final TypeDef<T> resultType, final BiFunction<SmartRandom, TypeDef<T>, T> method) {
             aliases(resultType)
                     .forEach(alias -> methods.put(alias, method));
             return this;
         }
 
         @SuppressWarnings("unchecked")
-        private static <T> List<DefType<T>> aliases(final DefType<T> resultType) {
+        private static <T> List<TypeDef<T>> aliases(final TypeDef<T> resultType) {
             return Optional.ofNullable(ALIASES.get(resultType))
                     .orElseGet(() -> singletonList(resultType));
         }
@@ -133,15 +138,19 @@ public final class SmartRandom {
                     {Character.TYPE, Character.class}
             };
 
-            private static Map<DefType, List> aliases() {
-                final Map<DefType, List<DefType<?>>> result = new HashMap<>(2);
+            private static Map<TypeDesc, List> aliases() {
+                final Map<TypeDesc, List<TypeDesc>> result = new HashMap<>(2);
                 Stream.of(PRIMITIVES)
-                        .map(classes -> unmodifiableList(asList(DefType.of(classes[0]), DefType.of(classes[1]))))
-                        .forEach((List<DefType<?>> types) -> {
+                        .map(classes -> toList(TypeDef.of(classes[0]), TypeDef.of(classes[1])))
+                        .forEach(types -> {
                             result.put(types.get(0), types);
                             result.put(types.get(1), types);
                         });
                 return unmodifiableMap(result);
+            }
+
+            private static List<TypeDesc> toList(final TypeDesc... types) {
+                return unmodifiableList(asList(types));
             }
         }
     }
