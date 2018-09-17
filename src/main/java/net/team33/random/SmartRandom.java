@@ -1,5 +1,6 @@
 package net.team33.random;
 
+import de.team33.libs.random.v1.BasicRandom;
 import net.team33.random.typing.TypeSetup;
 import net.team33.random.typing.Typing;
 

@@ -1,4 +1,4 @@
-package net.team33.random;
+package de.team33.libs.random.v1;
 
 import java.util.Random;
 
