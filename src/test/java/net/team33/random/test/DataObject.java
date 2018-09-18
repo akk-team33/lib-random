@@ -1,13 +1,12 @@
 package net.team33.random.test;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings({"ClassWithTooManyFields", "ClassWithTooManyMethods"})
-public class DataObject extends GenericData<BigInteger, String> {
+public class DataObject /*extends GenericData<BigInteger, String>*/ {
 
     private Boolean boolVal;
     private Byte byteVal;

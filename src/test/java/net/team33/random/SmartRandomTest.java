@@ -34,13 +34,13 @@ public class SmartRandomTest {
             Integer.TYPE, Integer.class, Long.TYPE, Long.class, Float.TYPE, Float.class, Double.TYPE, Double.class,
             Character.TYPE, Character.class, Number.class, Object.class, CaseFormat.class,
             String.class, Date.class, BigInteger.class, BigDecimal.class,
-            Recursive.class, DataObject.class,
+            Recursive.class/*, DataObject.class*/,
             // Arrays ...
             boolean[].class, Boolean[].class, byte[].class, Byte[].class, short[].class, Short[].class,
             int[].class, Integer[].class, long[].class, Long[].class, float[].class, Float[].class,
             double[].class, Double[].class, char[].class, Character[].class, CaseFormat[].class,
             String[].class, Date[].class, BigInteger[].class, BigDecimal[].class,
-            Recursive[].class, DataObject[].class};
+            Recursive[].class/*, DataObject[].class*/};
 
     private final Class<?> rClass;
     private final SmartRandom random;
