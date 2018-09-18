@@ -3,6 +3,7 @@ package net.team33.random;
 import de.team33.libs.typing.v1.DefType;
 import net.team33.random.test.DataObject;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
@@ -73,6 +74,7 @@ public class SmartRandomComposedTest {
     }
 
     @SuppressWarnings({"AssertEqualsMayBeAssertSame", "Duplicates"})
+    @Ignore
     @Test
     public final void fieldWise() {
         final SmartRandom random = RANDOM.get();
@@ -87,6 +89,7 @@ public class SmartRandomComposedTest {
     }
 
     @SuppressWarnings({"AssertEqualsMayBeAssertSame", "Duplicates"})
+    @Ignore
     @Test
     public final void setterWise() {
         final SmartRandom random = RANDOM.get();
