@@ -1,5 +1,7 @@
 package net.team33.random;
 
+import de.team33.libs.random.v3.BasicRandom;
+
 import java.util.List;
 
 @SuppressWarnings("OverloadedVarargsMethod")

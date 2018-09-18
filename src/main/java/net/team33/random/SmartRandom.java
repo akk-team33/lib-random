@@ -1,5 +1,6 @@
 package net.team33.random;
 
+import de.team33.libs.random.v3.BasicRandom;
 import de.team33.libs.typing.v1.DefType;
 
 import java.lang.reflect.Array;
