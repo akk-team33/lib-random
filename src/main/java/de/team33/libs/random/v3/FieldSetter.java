@@ -100,17 +100,26 @@ public class FieldSetter<T> {
         }
 
         public final Builder builder() {
-            throw new UnsupportedOperationException("not yet implemented");
+            return new Builder(this);
         }
     }
 
     public static final class Builder {
 
-        private Function<DefType<?>, ?> method = type -> null;
-        private Function<Class<?>, Stream<Field>> fields = Fields.DEEP;
-        private Predicate<Field> filter = FieldFilter.SIGNIFICANT;
+        private Function<DefType<?>, ?> method;
+        private Function<Class<?>, Stream<Field>> fields;
+        private Predicate<Field> filter;
 
         private Builder() {
+            this.method = type -> null;
+            this.fields = Fields.DEEP;
+            this.filter = FieldFilter.SIGNIFICANT;
+        }
+
+        private Builder(final Template template) {
+            this.method = template.method;
+            this.fields = template.fields;
+            this.filter = template.filter;
         }
 
         public final Builder setMethod(final Function<DefType<?>, ?> method) {
@@ -130,6 +139,10 @@ public class FieldSetter<T> {
 
         public final Template prepare() {
             return new Template(this);
+        }
+
+        public final <T> FieldSetter<T> build(final Class<T> type) {
+            return build(DefType.of(type));
         }
 
         public final <T> FieldSetter<T> build(final DefType<T> type) {

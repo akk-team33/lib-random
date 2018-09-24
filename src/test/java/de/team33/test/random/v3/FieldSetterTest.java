@@ -1,5 +1,7 @@
 package de.team33.test.random.v3;
 
+import de.team33.libs.random.reflect.FieldFilter;
+import de.team33.libs.random.reflect.Fields;
 import de.team33.libs.random.v3.FieldSetter;
 import de.team33.libs.typing.v1.DefType;
 import de.team33.test.random.shared.Single;
@@ -54,5 +56,15 @@ public class FieldSetterTest {
                 notNullValue(),
                 instanceOf(Date.class)
         ));
+    }
+
+    @Test
+    public final void setFieldsRebuilt() {
+        final FieldSetter<SingleString> setter = TEMPLATE.builder()
+                .setFields(Fields.FLAT)
+                .setFilter(FieldFilter.STATIC)
+                .build(SingleString.class);
+        final SingleString result = setter.setFields(new SingleString());
+        assertNull(result.getField());
     }
 }
