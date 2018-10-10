@@ -6,37 +6,37 @@ import de.team33.libs.typing.v1.DefType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
-@SuppressWarnings({"MethodMayBeStatic", "unused"})
-public class FieldSetter<T> {
+/**
+ * Represents a tool for filling fields of instances of a particular type with arbitrary but well-typed values.
+ * <p>An instance is not thread-safe!</p>
+ *
+ * @see Template#get(DefType)
+ * @see Template#get(Class)
+ * @see Builder#build(DefType)
+ * @see Builder#build(Class)
+ */
+public final class FieldSetter<T> {
 
-    private final Template core;
+    private static final Function<Class<?>, Stream<Field>> DEFAULT_FIELDS_FUNCTION = type -> Fields.DEEP.apply(type)
+            .filter(FieldFilter.SIGNIFICANT);
+
     private final DefType<T> type;
+    private final Function<DefType<?>, ?> values;
+    private final Set<Field> fields;
 
-    public FieldSetter(final Template core, final DefType<T> type) {
-        this.core = core;
+    private FieldSetter(final Template template, final DefType<T> type) {
         this.type = type;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static Template template() {
-        return builder().prepare();
-    }
-
-    public static <T> FieldSetter<T> instance(final Class<T> type) {
-        return template().apply(type);
-    }
-
-    public static <T> FieldSetter<T> instance(final DefType<T> type) {
-        return template().apply(type);
+        this.values = template.valueFunction;
+        this.fields = template.fieldsFunction.apply(type.getUnderlyingClass())
+                .peek(field -> field.setAccessible(true))
+                .collect(Collectors.toSet());
     }
 
     private static DefType<?> typeOf(final Field field, final DefType<?> context) {
@@ -62,10 +62,25 @@ public class FieldSetter<T> {
         return (null == superType) ? null : context.getMemberType(superType);
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static Template template(final Function<DefType<?>, ?> valueFunction) {
+        return builder()
+                .setValueFunction(valueFunction)
+                .prepare();
+    }
+
+    /**
+     * Sets all the <em>relevant</em> fields of a given instance with an <em>arbitrary</em> value.
+     *
+     * @return the given subject.
+     */
     public final T setFields(final T subject) {
-        fields(type.getUnderlyingClass()).forEach(field -> {
+        fields.forEach(field -> {
             try {
-                field.set(subject, core.method.apply(typeOf(field, type)));
+                field.set(subject, values.apply(typeOf(field, type)));
             } catch (final IllegalAccessException caught) {
                 throw new IllegalStateException(format("cannot access field <%s>", field), caught);
             }
@@ -73,29 +88,23 @@ public class FieldSetter<T> {
         return subject;
     }
 
-    private Stream<Field> fields(final Class<?> underlyingClass) {
-        return core.fields.apply(underlyingClass)
-                .filter(core.filter)
-                .peek(field -> field.setAccessible(true));
-    }
-
     public static final class Template {
 
-        private final Function<DefType<?>, ?> method;
-        private final Function<Class<?>, Stream<Field>> fields;
-        private final Predicate<Field> filter;
+        private final Function<DefType<?>, ?> valueFunction;
+        private final Function<Class<?>, Stream<Field>> fieldsFunction;
+        private final int maxRecursionDepth;
 
         private Template(final Builder builder) {
-            this.method = builder.method;
-            this.fields = builder.fields;
-            this.filter = builder.filter;
+            this.valueFunction = builder.valueFunction;
+            this.fieldsFunction = builder.fieldsFunction;
+            this.maxRecursionDepth = builder.maxRecursionDepth;
         }
 
-        public final <T> FieldSetter<T> apply(final Class<T> type) {
-            return apply(DefType.of(type));
+        public final <T> FieldSetter<T> get(final Class<T> type) {
+            return get(DefType.of(type));
         }
 
-        public final <T> FieldSetter<T> apply(final DefType<T> type) {
+        public final <T> FieldSetter<T> get(final DefType<T> type) {
             return new FieldSetter<>(this, type);
         }
 
@@ -106,34 +115,34 @@ public class FieldSetter<T> {
 
     public static final class Builder {
 
-        private Function<DefType<?>, ?> method;
-        private Function<Class<?>, Stream<Field>> fields;
-        private Predicate<Field> filter;
+        private Function<DefType<?>, ?> valueFunction;
+        private Function<Class<?>, Stream<Field>> fieldsFunction;
+        private int maxRecursionDepth;
 
         private Builder() {
-            this.method = type -> null;
-            this.fields = Fields.DEEP;
-            this.filter = FieldFilter.SIGNIFICANT;
+            this.valueFunction = type -> null;
+            this.fieldsFunction = DEFAULT_FIELDS_FUNCTION;
+            this.maxRecursionDepth = 3;
         }
 
         private Builder(final Template template) {
-            this.method = template.method;
-            this.fields = template.fields;
-            this.filter = template.filter;
+            this.valueFunction = template.valueFunction;
+            this.fieldsFunction = template.fieldsFunction;
+            this.maxRecursionDepth = template.maxRecursionDepth;
         }
 
-        public final Builder setMethod(final Function<DefType<?>, ?> method) {
-            this.method = method;
+        public final Builder setValueFunction(final Function<DefType<?>, ?> valueFunction) {
+            this.valueFunction = valueFunction;
             return this;
         }
 
-        public final Builder setFields(final Function<Class<?>, Stream<Field>> fields) {
-            this.fields = fields;
+        public final Builder setFieldsFunction(final Function<Class<?>, Stream<Field>> fieldsFunction) {
+            this.fieldsFunction = fieldsFunction;
             return this;
         }
 
-        public final Builder setFilter(final Predicate<Field> filter) {
-            this.filter = filter;
+        public final Builder setMaxRecursionDepth(final int maxRecursionDepth) {
+            this.maxRecursionDepth = maxRecursionDepth;
             return this;
         }
 
@@ -142,11 +151,11 @@ public class FieldSetter<T> {
         }
 
         public final <T> FieldSetter<T> build(final Class<T> type) {
-            return build(DefType.of(type));
+            return prepare().get(type);
         }
 
         public final <T> FieldSetter<T> build(final DefType<T> type) {
-            return prepare().apply(type);
+            return prepare().get(type);
         }
     }
 }
