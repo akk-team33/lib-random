@@ -6,42 +6,45 @@ import de.team33.libs.typing.v1.DefType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Predicate;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
 
 /**
- * Represents a tool for filling fields of instances of a particular type with arbitrary but well-typed values.
- * <p>An instance is not thread-safe!</p>
+ * <p>A tool for filling fields of instances of a particular type with arbitrary but well-typed values.</p>
+ * <p>An instance is generally not thread-safe and should be short lived.</p>
  *
- * @see Template#get(DefType)
  * @see Template#get(Class)
- * @see Builder#build(DefType)
- * @see Builder#build(Class)
+ * @see Template#get(DefType)
  */
+@SuppressWarnings("ClassWithOnlyPrivateConstructors")
 public final class FieldSetter<T> {
 
-    private static final Function<Class<?>, Stream<Field>> DEFAULT_FIELDS_FUNCTION = type -> Fields.DEEP.apply(type)
-            .filter(FieldFilter.SIGNIFICANT);
+    private static final String CANNOT_ACCESS = "cannot access field <%s> in context <%s>";
+    private static final String CANNOT_FIND = "cannot find definite type of field <%s> in context <%s>";
 
     private final DefType<T> type;
     private final Function<DefType<?>, ?> values;
     private final Set<Field> fields;
 
-    private FieldSetter(final Template template, final DefType<T> type) {
+    private FieldSetter(final DefType<T> type, final Template template) {
         this.type = type;
-        this.values = template.valueFunction;
-        this.fields = template.fieldsFunction.apply(type.getUnderlyingClass())
+        this.values = template.values;
+        this.fields = Fields.DEEP.apply(type.getUnderlyingClass())
+                .filter(template.filter)
                 .peek(field -> field.setAccessible(true))
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
-    private static DefType<?> typeOf(final Field field, final DefType<?> context) {
+    private static DefType<?> typeOf(final Field field, final DefType<?> context) throws TypeNotFoundException {
         if (null == context) {
-            throw new IllegalStateException(format("cannot find definite type of field <%s>", field));
+            throw new TypeNotFoundException();
         } else {
             return typeOf(field, field.getDeclaringClass(), context, context.getUnderlyingClass());
         }
@@ -50,112 +53,112 @@ public final class FieldSetter<T> {
     private static DefType<?> typeOf(final Field field,
                                      final Class<?> declaringClass,
                                      final DefType<?> context,
-                                     final Class<?> underlyingClass) {
+                                     final Class<?> underlyingClass) throws TypeNotFoundException {
         if (declaringClass.equals(underlyingClass)) {
             return context.getMemberType(field.getGenericType());
         } else {
-            return typeOf(field, defTypeOf(underlyingClass.getGenericSuperclass(), context));
+            return typeOf(field, typeOf(underlyingClass.getGenericSuperclass(), context));
         }
     }
 
-    private static DefType<?> defTypeOf(final Type superType, final DefType<?> context) {
+    private static DefType<?> typeOf(final Type superType, final DefType<?> context) {
         return (null == superType) ? null : context.getMemberType(superType);
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static Template template(final Function<DefType<?>, ?> valueFunction) {
-        return builder()
-                .setValueFunction(valueFunction)
-                .prepare();
+    /**
+     * <p>Retrieves a new template for {@link FieldSetter}s using a specified method to get values of suitable
+     * type for the fields.</p>
+     */
+    public static Template prepare(final Function<DefType<?>, ?> method) {
+        return new Template(method, FieldFilter.SIGNIFICANT);
     }
 
     /**
      * Sets all the <em>relevant</em> fields of a given instance with an <em>arbitrary</em> value.
      *
      * @return the given subject.
+     * @see Template#setFilter(Function)
+     * @see Template#ignore(String...)
+     * @see Template#ignore(Collection)
+     * @see #prepare(Function)
      */
     public final T setFields(final T subject) {
         fields.forEach(field -> {
             try {
                 field.set(subject, values.apply(typeOf(field, type)));
             } catch (final IllegalAccessException caught) {
-                throw new IllegalStateException(format("cannot access field <%s>", field), caught);
+                throw new IllegalStateException(format(CANNOT_ACCESS, field, type), caught);
+            } catch (final TypeNotFoundException caught) {
+                throw new IllegalStateException(format(CANNOT_FIND, field, type), caught);
             }
         });
         return subject;
     }
 
-    public static final class Template {
+    private static class TypeNotFoundException extends Exception {
+    }
 
-        private final Function<DefType<?>, ?> valueFunction;
-        private final Function<Class<?>, Stream<Field>> fieldsFunction;
-        private final int maxRecursionDepth;
+    /**
+     * <p>A template (kind of factory) for a single or several consistent {@link FieldSetter}s.</p>
+     * <p>In contrast to the {@link FieldSetter} itself, a template is always thread-safe.
+     * It can be long or short lived.</p>
+     *
+     * @see #prepare(Function)
+     */
+    public static class Template {
 
-        private Template(final Builder builder) {
-            this.valueFunction = builder.valueFunction;
-            this.fieldsFunction = builder.fieldsFunction;
-            this.maxRecursionDepth = builder.maxRecursionDepth;
+        private final Function<DefType<?>, ?> values;
+        private final Predicate<Field> filter;
+
+        private Template(final Function<DefType<?>, ?> values, final Predicate<Field> filter) {
+            this.values = values;
+            this.filter = filter;
         }
 
+        /**
+         * <p>Determines which fields are to be considered by a resulting FieldSetter.</p>
+         * <p>By default, all but static or transient fields are considered.</p>
+         *
+         * @param update a {@link Function} that may update or replace the current filter.
+         * @return A new template based on this, but using the updated/replaced filter.
+         * This template remains unchanged.
+         */
+        public final Template setFilter(final Function<Predicate<Field>, Predicate<Field>> update) {
+            return new Template(values, update.apply(filter));
+        }
+
+        /**
+         * <p>Determines that a resulting {@link FieldSetter} should ignore certain fields based on their name.</p>
+         *
+         * @return A new template based on this, but using an updated filter. This template remains unchanged.
+         */
+        @SuppressWarnings("OverloadedVarargsMethod")
+        public final Template ignore(final String... ignorable) {
+            return ignore(asList(ignorable));
+        }
+
+        /**
+         * <p>Determines that a resulting {@link FieldSetter} should ignore certain fields based on their name.</p>
+         *
+         * @return A new template based on this, but using an updated filter. This template remains unchanged.
+         */
+        public final Template ignore(final Collection<String> ignorable) {
+            final Collection<String> names = new HashSet<>(ignorable);
+            return setFilter(origin -> origin.and(field -> !names.contains(field.getName())));
+        }
+
+        /**
+         * Retrieves a new {@link FieldSetter} for the given type, based on this template.
+         */
         public final <T> FieldSetter<T> get(final Class<T> type) {
             return get(DefType.of(type));
         }
 
+        /**
+         * Retrieves a new {@link FieldSetter} for the given type, based on this template.
+         */
         public final <T> FieldSetter<T> get(final DefType<T> type) {
-            return new FieldSetter<>(this, type);
-        }
-
-        public final Builder builder() {
-            return new Builder(this);
-        }
-    }
-
-    public static final class Builder {
-
-        private Function<DefType<?>, ?> valueFunction;
-        private Function<Class<?>, Stream<Field>> fieldsFunction;
-        private int maxRecursionDepth;
-
-        private Builder() {
-            this.valueFunction = type -> null;
-            this.fieldsFunction = DEFAULT_FIELDS_FUNCTION;
-            this.maxRecursionDepth = 3;
-        }
-
-        private Builder(final Template template) {
-            this.valueFunction = template.valueFunction;
-            this.fieldsFunction = template.fieldsFunction;
-            this.maxRecursionDepth = template.maxRecursionDepth;
-        }
-
-        public final Builder setValueFunction(final Function<DefType<?>, ?> valueFunction) {
-            this.valueFunction = valueFunction;
-            return this;
-        }
-
-        public final Builder setFieldsFunction(final Function<Class<?>, Stream<Field>> fieldsFunction) {
-            this.fieldsFunction = fieldsFunction;
-            return this;
-        }
-
-        public final Builder setMaxRecursionDepth(final int maxRecursionDepth) {
-            this.maxRecursionDepth = maxRecursionDepth;
-            return this;
-        }
-
-        public final Template prepare() {
-            return new Template(this);
-        }
-
-        public final <T> FieldSetter<T> build(final Class<T> type) {
-            return prepare().get(type);
-        }
-
-        public final <T> FieldSetter<T> build(final DefType<T> type) {
-            return prepare().get(type);
+            return new FieldSetter<>(type, this);
         }
     }
 }

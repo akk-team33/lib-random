@@ -4,14 +4,20 @@ import de.team33.libs.random.v3.FieldSetter;
 import de.team33.libs.typing.v1.DefType;
 import de.team33.test.random.shared.Single;
 import de.team33.test.random.shared.SingleDate;
+import de.team33.test.random.shared.SingleInteger;
 import de.team33.test.random.shared.SingleString;
 import org.junit.Test;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -19,14 +25,21 @@ import static org.junit.Assert.assertThat;
 @SuppressWarnings("ConstantConditions")
 public class FieldSetterTest {
 
-    @SuppressWarnings("ClassNewInstance")
-    private static final FieldSetter.Template TEMPLATE = FieldSetter.template(type -> {
-        try {
-            return type.getUnderlyingClass().newInstance();
-        } catch (final InstantiationException | IllegalAccessException e) {
-            throw new IllegalStateException(e.getMessage(), e);
-        }
-    });
+    private static final DefType<Single<List<Integer>>> SINGLE_LIST_INT_TYPE = new DefType<Single<List<Integer>>>() {
+    };
+    private static final DefType<List<Integer>> LIST_INT_TYPE = new DefType<List<Integer>>() {
+    };
+    private static final DefType<Single<List<String>>> SINGLE_LIST_STRING_TYPE = new DefType<Single<List<String>>>() {
+    };
+    private static final DefType<List<String>> LIST_STRING_TYPE = new DefType<List<String>>() {
+    };
+    private static final Pool POOL = new Pool()
+            .put(DefType.of(String.class), "a string")
+            .put(DefType.of(Integer.class), 278)
+            .put(DefType.of(Date.class), new Date(0))
+            .put(LIST_INT_TYPE, Collections.singletonList(278))
+            .put(LIST_STRING_TYPE, Collections.singletonList("another string"));
+    private static final FieldSetter.Template TEMPLATE = FieldSetter.prepare(POOL::get);
 
     @Test
     public final void newSingle() {
@@ -44,6 +57,16 @@ public class FieldSetterTest {
     }
 
     @Test
+    public final void setFieldsSingleInteger() {
+        final FieldSetter<SingleInteger> setter = TEMPLATE.get(SingleInteger.class);
+        final SingleInteger result = setter.setFields(new SingleInteger());
+        assertThat(result.getField(), allOf(
+                notNullValue(),
+                instanceOf(Integer.class)
+        ));
+    }
+
+    @Test
     public final void setFieldsSingleDate() {
         final FieldSetter<SingleDate> setter = TEMPLATE.get(SingleDate.class);
         final SingleDate result = setter.setFields(new SingleDate());
@@ -54,13 +77,40 @@ public class FieldSetterTest {
     }
 
     @Test
-    public final void setFieldsSingleList() {
-        final FieldSetter<Single<ArrayList<Integer>>> setter = TEMPLATE.get(new DefType<Single<ArrayList<Integer>>>() {
-        });
-        final Single<ArrayList<Integer>> result = setter.setFields(new Single<>());
+    public final void setFieldsSingleListInt() {
+        final FieldSetter<Single<List<Integer>>> setter = TEMPLATE.get(SINGLE_LIST_INT_TYPE);
+        final Single<List<Integer>> result = setter.setFields(new Single<>());
         assertThat(result.getField(), allOf(
                 notNullValue(),
-                instanceOf(ArrayList.class)
+                instanceOf(List.class),
+                is(POOL.get(LIST_INT_TYPE))
         ));
+    }
+
+    @Test
+    public final void setFieldsSingleListString() {
+        final FieldSetter<Single<List<String>>> setter = TEMPLATE.get(SINGLE_LIST_STRING_TYPE);
+        final Single<List<String>> result = setter.setFields(new Single<>());
+        assertThat(result.getField(), allOf(
+                notNullValue(),
+                instanceOf(List.class),
+                is(POOL.get(LIST_STRING_TYPE))
+        ));
+    }
+
+    private static class Pool {
+
+        private final Map<DefType<?>, Object> map = new HashMap<>(0);
+
+        public final <T> Pool put(final DefType<T> type, final T value) {
+            map.put(type, value);
+            return this;
+        }
+
+        public final <T> T get(final DefType<T> type) {
+            //noinspection unchecked
+            return (T) Optional.ofNullable(map.get(type))
+                    .orElseThrow(() -> new IllegalArgumentException("unknown typ: " + type));
+        }
     }
 }
