@@ -2,10 +2,9 @@ package de.team33.libs.random.v3;
 
 import de.team33.libs.random.reflect.FieldFilter;
 import de.team33.libs.random.reflect.Fields;
-import de.team33.libs.typing.v1.DefType;
+import de.team33.libs.typing.v3.Type;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,7 +20,7 @@ import static java.util.stream.Collectors.toSet;
  * <p>An instance is generally not thread-safe and should be short lived.</p>
  *
  * @see Template#get(Class)
- * @see Template#get(DefType)
+ * @see Template#get(Type)
  */
 @SuppressWarnings("ClassWithOnlyPrivateConstructors")
 public final class FieldSetter<T> {
@@ -29,11 +28,11 @@ public final class FieldSetter<T> {
     private static final String CANNOT_ACCESS = "cannot access field <%s> in context <%s>";
     private static final String CANNOT_FIND = "cannot find definite type of field <%s> in context <%s>";
 
-    private final DefType<T> type;
-    private final Function<DefType<?>, ?> values;
+    private final Type<T> type;
+    private final Function<Type<?>, ?> values;
     private final Set<Field> fields;
 
-    private FieldSetter(final DefType<T> type, final Template template) {
+    private FieldSetter(final Type<T> type, final Template template) {
         this.type = type;
         this.values = template.values;
         this.fields = Fields.DEEP.apply(type.getUnderlyingClass())
@@ -42,7 +41,7 @@ public final class FieldSetter<T> {
                 .collect(toSet());
     }
 
-    private static DefType<?> typeOf(final Field field, final DefType<?> context) throws TypeNotFoundException {
+    private static Type<?> typeOf(final Field field, final Type<?> context) throws TypeNotFoundException {
         if (null == context) {
             throw new TypeNotFoundException();
         } else {
@@ -50,10 +49,10 @@ public final class FieldSetter<T> {
         }
     }
 
-    private static DefType<?> typeOf(final Field field,
-                                     final Class<?> declaringClass,
-                                     final DefType<?> context,
-                                     final Class<?> underlyingClass) throws TypeNotFoundException {
+    private static Type<?> typeOf(final Field field,
+                                  final Class<?> declaringClass,
+                                  final Type<?> context,
+                                  final Class<?> underlyingClass) throws TypeNotFoundException {
         if (declaringClass.equals(underlyingClass)) {
             return context.getMemberType(field.getGenericType());
         } else {
@@ -61,7 +60,7 @@ public final class FieldSetter<T> {
         }
     }
 
-    private static DefType<?> typeOf(final Type superType, final DefType<?> context) {
+    private static Type<?> typeOf(final java.lang.reflect.Type superType, final Type<?> context) {
         return (null == superType) ? null : context.getMemberType(superType);
     }
 
@@ -69,7 +68,7 @@ public final class FieldSetter<T> {
      * <p>Retrieves a new template for {@link FieldSetter}s using a specified method to get values of suitable
      * type for the fields.</p>
      */
-    public static Template prepare(final Function<DefType<?>, ?> method) {
+    public static Template prepare(final Function<Type<?>, ?> method) {
         return new Template(method, FieldFilter.SIGNIFICANT);
     }
 
@@ -107,10 +106,10 @@ public final class FieldSetter<T> {
      */
     public static class Template {
 
-        private final Function<DefType<?>, ?> values;
+        private final Function<Type<?>, ?> values;
         private final Predicate<Field> filter;
 
-        private Template(final Function<DefType<?>, ?> values, final Predicate<Field> filter) {
+        private Template(final Function<Type<?>, ?> values, final Predicate<Field> filter) {
             this.values = values;
             this.filter = filter;
         }
@@ -151,13 +150,13 @@ public final class FieldSetter<T> {
          * Retrieves a new {@link FieldSetter} for the given type, based on this template.
          */
         public final <T> FieldSetter<T> get(final Class<T> type) {
-            return get(DefType.of(type));
+            return get(Type.of(type));
         }
 
         /**
          * Retrieves a new {@link FieldSetter} for the given type, based on this template.
          */
-        public final <T> FieldSetter<T> get(final DefType<T> type) {
+        public final <T> FieldSetter<T> get(final Type<T> type) {
             return new FieldSetter<>(type, this);
         }
     }

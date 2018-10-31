@@ -1,7 +1,7 @@
 package de.team33.test.random.v3;
 
 import de.team33.libs.random.v3.FieldSetter;
-import de.team33.libs.typing.v1.DefType;
+import de.team33.libs.typing.v3.Type;
 import de.team33.test.random.shared.Single;
 import de.team33.test.random.shared.SingleDate;
 import de.team33.test.random.shared.SingleInteger;
@@ -25,18 +25,18 @@ import static org.junit.Assert.assertThat;
 @SuppressWarnings("ConstantConditions")
 public class FieldSetterTest {
 
-    private static final DefType<Single<List<Integer>>> SINGLE_LIST_INT_TYPE = new DefType<Single<List<Integer>>>() {
+    private static final Type<Single<List<Integer>>> SINGLE_LIST_INT_TYPE = new Type<Single<List<Integer>>>() {
     };
-    private static final DefType<List<Integer>> LIST_INT_TYPE = new DefType<List<Integer>>() {
+    private static final Type<List<Integer>> LIST_INT_TYPE = new Type<List<Integer>>() {
     };
-    private static final DefType<Single<List<String>>> SINGLE_LIST_STRING_TYPE = new DefType<Single<List<String>>>() {
+    private static final Type<Single<List<String>>> SINGLE_LIST_STRING_TYPE = new Type<Single<List<String>>>() {
     };
-    private static final DefType<List<String>> LIST_STRING_TYPE = new DefType<List<String>>() {
+    private static final Type<List<String>> LIST_STRING_TYPE = new Type<List<String>>() {
     };
     private static final Pool POOL = new Pool()
-            .put(DefType.of(String.class), "a string")
-            .put(DefType.of(Integer.class), 278)
-            .put(DefType.of(Date.class), new Date(0))
+            .put(Type.of(String.class), "a string")
+            .put(Type.of(Integer.class), 278)
+            .put(Type.of(Date.class), new Date(0))
             .put(LIST_INT_TYPE, Collections.singletonList(278))
             .put(LIST_STRING_TYPE, Collections.singletonList("another string"));
     private static final FieldSetter.Template TEMPLATE = FieldSetter.prepare(POOL::get);
@@ -100,14 +100,14 @@ public class FieldSetterTest {
 
     private static class Pool {
 
-        private final Map<DefType<?>, Object> map = new HashMap<>(0);
+        private final Map<Type<?>, Object> map = new HashMap<>(0);
 
-        public final <T> Pool put(final DefType<T> type, final T value) {
+        public final <T> Pool put(final Type<T> type, final T value) {
             map.put(type, value);
             return this;
         }
 
-        public final <T> T get(final DefType<T> type) {
+        public final <T> T get(final Type<T> type) {
             //noinspection unchecked
             return (T) Optional.ofNullable(map.get(type))
                     .orElseThrow(() -> new IllegalArgumentException("unknown typ: " + type));

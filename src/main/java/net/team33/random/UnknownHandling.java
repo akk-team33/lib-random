@@ -1,6 +1,6 @@
 package net.team33.random;
 
-import de.team33.libs.typing.v1.DefType;
+import de.team33.libs.typing.v3.Type;
 
 import java.util.function.Function;
 
@@ -14,7 +14,7 @@ public enum UnknownHandling {
      */
     FAIL {
         @Override
-        public <T> Function<SmartRandom, T> function(final DefType<?> setup) {
+        public <T> Function<SmartRandom, T> function(final Type<?> setup) {
             return random -> {
                 throw new IllegalArgumentException("no method specified for " + setup);
             };
@@ -26,10 +26,10 @@ public enum UnknownHandling {
      */
     RETURN_NULL {
         @Override
-        public <T> Function<SmartRandom, T> function(final DefType<?> setup) {
+        public <T> Function<SmartRandom, T> function(final Type<?> setup) {
             return random -> null;
         }
     };
 
-    public abstract <T> Function<SmartRandom, T> function(final DefType<?> setup);
+    public abstract <T> Function<SmartRandom, T> function(final Type<?> setup);
 }

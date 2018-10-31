@@ -1,12 +1,11 @@
 package net.team33.random;
 
 import de.team33.libs.random.v3.BasicRandom;
-import de.team33.libs.typing.v1.DefType;
+import de.team33.libs.typing.v3.Type;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -63,7 +62,7 @@ public final class SmartRandom {
     public final Selector select;
 
     @SuppressWarnings("rawtypes")
-    private final Map<DefType, Function> methods;
+    private final Map<Type, Function> methods;
     private final Core core;
     private final Bounds arrayBounds = new Bounds(4, 16); // preliminary here, TODO: move to Builder/Core
 
@@ -78,11 +77,11 @@ public final class SmartRandom {
         return new Builder();
     }
 
-    private static Map<String, DefType<?>> newMap(final Class<?> aClass) {
-        final List<DefType<?>> actual = DefType.of(aClass)
+    private static Map<String, Type<?>> newMap(final Class<?> aClass) {
+        final List<Type<?>> actual = Type.of(aClass)
                 .getActualParameters();
         final TypeVariable<? extends Class<?>>[] formal = aClass.getSuperclass().getTypeParameters();
-        final Map<String, DefType<?>> result = new HashMap<>(actual.size());
+        final Map<String, Type<?>> result = new HashMap<>(actual.size());
         for (int i = 0; i < actual.size(); ++i)
             result.put(formal[i].getName(), actual.get(i));
         return result;
@@ -95,7 +94,7 @@ public final class SmartRandom {
      * configuration of this {@link SmartRandom}.
      */
     public final <T> T any(final Class<T> resultClass) {
-        return any(DefType.of(resultClass));
+        return any(Type.of(resultClass));
     }
 
     /**
@@ -104,7 +103,7 @@ public final class SmartRandom {
      * Typically the result is not {@code null} but may be {@code null} in some circumstances based on the
      * configuration of this {@link SmartRandom}.
      */
-    public final <T> T any(final DefType<T> resultType) {
+    public final <T> T any(final Type<T> resultType) {
         return (T) getMethod(resultType).apply(this);
     }
 
@@ -123,7 +122,7 @@ public final class SmartRandom {
     }
 
     @SuppressWarnings("rawtypes")
-    private Function getMethod(final DefType<?> setup) {
+    private Function getMethod(final Type<?> setup) {
         return Optional.ofNullable(methods.get(setup)).orElseGet(() -> {
             final Function result = core.getMethod(setup).get();
             methods.put(setup, result);
@@ -140,13 +139,12 @@ public final class SmartRandom {
      * @return The (modified) target.
      */
     public final <T> T setAll(final T target, final Predicate<Method> filter) {
-        final DefType<?> targetType = DefType.of(target.getClass());// TODO: insufficient
+        final Type<?> targetType = Type.of(target.getClass());// TODO: insufficient
         Reflect.publicSetters(target.getClass())
                 .filter(filter)
                 .forEach(setter -> {
                     try {
-                        final Type parameterType = setter.getGenericParameterTypes()[0];
-                        final Object value = any(targetType.getMemberType(parameterType));
+                        final Object value = any(targetType.getMemberType(setter.getGenericParameterTypes()[0]));
                         setter.invoke(target, value);
                     } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + setter + ">", caught);
@@ -172,13 +170,12 @@ public final class SmartRandom {
      * @return The (modified) target.
      */
     public final <T> T setAllFields(final T target, final Predicate<Field> filter) {
-        final DefType<?> targetType = DefType.of(target.getClass());// TODO: insufficient
+        final Type<?> targetType = Type.of(target.getClass());// TODO: insufficient
         Reflect.instanceFields(target.getClass())
                 .filter(filter)
                 .forEach(field -> {
                     try {
-                        final Type parameterType = field.getGenericType();
-                        field.set(target, any(targetType.getMemberType(parameterType)));
+                        field.set(target, any(targetType.getMemberType(field.getGenericType())));
                     } catch (final Exception caught) {
                         throw new IllegalStateException("cannot set <" + field + ">", caught);
                     }
@@ -213,7 +210,7 @@ public final class SmartRandom {
     private static final class Core implements Supplier<SmartRandom> {
 
         private final Supplier<BasicRandom> newBasic;
-        private final Map<DefType, Supplier> methods;
+        private final Map<Type, Supplier> methods;
         private final UnknownHandling unknownHandling;
         private final char[] charset;
 
@@ -233,20 +230,20 @@ public final class SmartRandom {
             return random -> resultClass.cast(random.anyArray(resultClass.getComponentType()));
         }
 
-        private static <E> Function<SmartRandom, List<E>> listFunction(final DefType<E> elmCmp) {
+        private static <E> Function<SmartRandom, List<E>> listFunction(final Type<E> elmCmp) {
             return random -> Stream.generate(() -> random.any(elmCmp))
                     .limit(random.arrayBounds.actual(random.basic))
                     .collect(ArrayList::new, List::add, List::addAll);
         }
 
-        private static <E> Function<SmartRandom, Set<E>> setFunction(final DefType<E> elmCmp) {
+        private static <E> Function<SmartRandom, Set<E>> setFunction(final Type<E> elmCmp) {
             return random -> Stream.<E>generate(() -> random.any(elmCmp))
                     .limit(random.arrayBounds.actual(random.basic))
                     .collect(HashSet::new, Set::add, Set::addAll);
         }
 
-        private static <K, V> Function<SmartRandom, Map<K, V>> mapFunction(final DefType<K> keyCmp,
-                                                                           final DefType<V> valCmp) {
+        private static <K, V> Function<SmartRandom, Map<K, V>> mapFunction(final Type<K> keyCmp,
+                                                                           final Type<V> valCmp) {
             return random -> Stream.<K>generate(() -> random.any(keyCmp))
                     .limit(random.arrayBounds.actual(random.basic))
                     .collect(HashMap::new, (map, key) -> map.put(key, random.any(valCmp)), Map::putAll);
@@ -257,7 +254,7 @@ public final class SmartRandom {
             return new SmartRandom(this);
         }
 
-        private Supplier<Function> getMethod(final DefType<?> setup) {
+        private Supplier<Function> getMethod(final Type<?> setup) {
             return Optional.ofNullable(methods.get(setup)).orElseGet(() -> {
                 final Function method = getDefaultMethod(setup);
                 final Supplier<Function> result = () -> method;
@@ -267,18 +264,18 @@ public final class SmartRandom {
         }
 
         @SuppressWarnings("IfStatementWithTooManyBranches")
-        private Function getDefaultMethod(final DefType<?> setup) {
+        private Function getDefaultMethod(final Type<?> setup) {
             final Class rawClass = setup.getUnderlyingClass();
             if (rawClass.isArray()) {
                 return arrayFunction(rawClass);
             } else if (rawClass.isEnum()) {
                 return enumFunction(rawClass);
-            } else if (List.class.equals(rawClass) && (1 == setup.getParameters().size())) {
-                return listFunction(setup.getParameters().get(0));
-            } else if (Set.class.equals(rawClass) && (1 == setup.getParameters().size())) {
-                return setFunction(setup.getParameters().get(0));
-            } else if (Map.class.equals(rawClass) && (2 == setup.getParameters().size())) {
-                return mapFunction(setup.getParameters().get(0), setup.getParameters().get(1));
+            } else if (List.class.equals(rawClass) && (1 == setup.getActualParameters().size())) {
+                return listFunction(setup.getActualParameters().get(0));
+            } else if (Set.class.equals(rawClass) && (1 == setup.getActualParameters().size())) {
+                return setFunction(setup.getActualParameters().get(0));
+            } else if (Map.class.equals(rawClass) && (2 == setup.getActualParameters().size())) {
+                return mapFunction(setup.getActualParameters().get(0), setup.getActualParameters().get(1));
             } else {
                 return unknownHandling.function(setup);
             }
@@ -297,7 +294,7 @@ public final class SmartRandom {
         private static final Map<Class, Class> PRIME_CLASSES = Init.newPrimeClasses();
 
         @SuppressWarnings("rawtypes")
-        private final Map<DefType, Supplier> methods = new HashMap<>(0);
+        private final Map<Type, Supplier> methods = new HashMap<>(0);
 
         @SuppressWarnings("Convert2MethodRef")
         private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
@@ -325,10 +322,10 @@ public final class SmartRandom {
          * using a given {@link SmartRandom} instance.
          *
          * @see #put(Class, Supplier)
-         * @see #put(DefType, Function)
+         * @see #put(Type, Function)
          */
         public final <T> Builder put(final Class<T> resultClass, final Function<SmartRandom, T> method) {
-            return put(DefType.of(resultClass), () -> method);
+            return put(Type.of(resultClass), () -> method);
         }
 
         /**
@@ -339,20 +336,20 @@ public final class SmartRandom {
          * and must be instantiated along to a {@link SmartRandom} instance.
          *
          * @see #put(Class, Function)
-         * @see #put(DefType, Supplier)
+         * @see #put(Type, Supplier)
          */
         public final <T> Builder put(final Class<T> resultClass, final Supplier<Function<SmartRandom, T>> supplier) {
-            return put(DefType.of(resultClass), supplier);
+            return put(Type.of(resultClass), supplier);
         }
 
         /**
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          *
-         * @see #put(DefType, Supplier)
+         * @see #put(Type, Supplier)
          * @see #put(Class, Function)
          */
-        public final <T> Builder put(final DefType<T> resultType, final Function<SmartRandom, T> method) {
+        public final <T> Builder put(final Type<T> resultType, final Function<SmartRandom, T> method) {
             return put(resultType, () -> method);
         }
 
@@ -360,17 +357,17 @@ public final class SmartRandom {
          * Defines a special method to generate an instance of a given generic type
          * using a given {@link SmartRandom} instance.
          * <p>
-         * In contrast to {@link #put(DefType, Function)} this should be used, when the method itself is not thread-safe
+         * In contrast to {@link #put(Type, Function)} this should be used, when the method itself is not thread-safe
          * and must be instantiated along to a {@link SmartRandom} instance.
          *
-         * @see #put(DefType, Function)
+         * @see #put(Type, Function)
          * @see #put(Class, Supplier)
          */
-        public final <T> Builder put(final DefType<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
-            final Consumer<DefType> put = cmp -> methods.put(cmp, supplier);
+        public final <T> Builder put(final Type<T> resultType, final Supplier<Function<SmartRandom, T>> supplier) {
+            final Consumer<Type> put = cmp -> methods.put(cmp, supplier);
             put.accept(resultType);
             Optional.ofNullable(PRIME_CLASSES.get(resultType.getUnderlyingClass()))
-                    .map(c -> DefType.of(c))
+                    .map(c -> Type.of(c))
                     .ifPresent(put);
             return this;
         }
