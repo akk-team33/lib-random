@@ -143,7 +143,14 @@ public class ChargedRandom {
     private static final class Statics {
 
         private static final Class<?>[][] ALTERNATIVES = {
-                {boolean.class, Boolean.class}
+                {boolean.class, Boolean.class},
+                {byte.class, Byte.class},
+                {short.class, Short.class},
+                {int.class, Integer.class},
+                {long.class, Long.class},
+                {float.class, Float.class},
+                {double.class, Double.class},
+                {char.class, Character.class}
         };
 
         private static Map<Type<?>, List<Type<?>>> alternatives() {
