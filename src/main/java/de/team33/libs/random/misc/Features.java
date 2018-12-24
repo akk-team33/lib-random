@@ -56,7 +56,10 @@ public final class Features {
         }
     }
 
-    public static final class Stage {
+    /**
+     * Represents a preliminary stage of {@link Features}.
+     */
+    public static final class Stage implements Supplier<Features> {
 
         @SuppressWarnings("rawtypes")
         private final Map<Key, Supplier> map;
@@ -65,15 +68,25 @@ public final class Features {
             this.map = unmodifiableMap(new HashMap<>(builder.map));
         }
 
+        /**
+         * Finally supplies a new instance of {@link Features}.
+         */
+        @Override
         public final Features get() {
             return new Features(this);
         }
 
+        /**
+         * Creates a new {@link Builder} based on this stage.
+         */
         public final Builder builder() {
             return new Builder(this);
         }
     }
 
+    /**
+     * Represents a builder for {@link Features}.
+     */
     public static final class Builder {
 
         @SuppressWarnings("rawtypes")
@@ -96,10 +109,17 @@ public final class Features {
             return this;
         }
 
+
+        /**
+         * Prepares new instances of {@link Features}. Use {@link Stage#get()} to finally get such instances.
+         */
         public final Stage prepare() {
             return new Stage(this);
         }
 
+        /**
+         * Builds a new instance of {@link Features}.
+         */
         public final Features build() {
             return prepare().get();
         }
