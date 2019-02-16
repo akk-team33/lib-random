@@ -297,7 +297,7 @@ public final class SmartRandom {
         private final Map<Type, Supplier> methods = new HashMap<>(0);
 
         @SuppressWarnings("Convert2MethodRef")
-        private Supplier<BasicRandom> newBasic = () -> new BasicRandom.Simple();
+        private Supplier<BasicRandom> newBasic = () -> BasicRandom.simple();
         private String charset = DEFAULT_CHARSET;
         private UnknownHandling unknownHandling = UnknownHandling.FAIL;
 

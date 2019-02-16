@@ -100,7 +100,7 @@ public class ChargedRandom {
         @SuppressWarnings("rawtypes")
         private final Map<Type, Function> methods;
         @SuppressWarnings("InnerClassReferencedViaSubclass")
-        private Supplier<BasicRandom> basics = BasicRandom.Simple::new;
+        private Supplier<BasicRandom> basics = BasicRandom::simple;
 
         private Builder() {
             methods = new HashMap<>(0);

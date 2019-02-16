@@ -13,9 +13,9 @@ import java.util.Date;
 
 public class DispenserTest {
 
-    private static final Key<BasicRandom.Simple> BASIC = new Key<>();
+    private static final Key<BasicRandom> BASIC = new Key<>();
     private static final Features.Stage STAGE = Features.builder()
-            .setup(BASIC, BasicRandom.Simple::new)
+            .setup(BASIC, BasicRandom::simple)
             .prepare();
     private static final Date THE_DATE = new Date();
     private static final MethodFault<Dispenser> FAULT = MethodFault.instance();
