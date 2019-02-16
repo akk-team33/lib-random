@@ -1,20 +1,20 @@
 package de.team33.libs.random.v3;
 
-import java.util.function.Function;
-
 import de.team33.libs.random.misc.Features;
 import de.team33.libs.typing.v3.Type;
 
-public abstract class Dispenser {
+public class Dispenser {
 
     private final Features features;
+    private final MethodPool<Dispenser> methods;
 
-    Dispenser(final Features.Stage stage)
+    Dispenser(final Features.Stage stage, final MethodPool<Dispenser> methods)
     {
-        features = stage.get();
+        this.features = stage.get();
+        this.methods = methods;
     }
 
-    public Features getFeatures()
+    public final Features getFeatures()
     {
         return features;
     }
@@ -24,8 +24,6 @@ public abstract class Dispenser {
     }
 
     public final <T> T get(final Type<T> type) {
-        return getMethod(type).apply(this);
+        return methods.get(type).apply(this);
     }
-
-    abstract <T> Function<Dispenser, T> getMethod(final Type<T> type);
 }
