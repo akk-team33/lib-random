@@ -4,13 +4,11 @@ import de.team33.libs.random.misc.Features;
 import de.team33.libs.random.v3.BasicRandom;
 import de.team33.libs.random.v3.Dispenser;
 import de.team33.libs.random.v3.methods.MethodCache;
-import de.team33.libs.random.v3.methods.MethodPool;
-import de.team33.libs.typing.v3.Type;
+import de.team33.libs.random.v3.methods.MethodFault;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Date;
-import java.util.function.Function;
 
 
 public class DispenserTest {
@@ -19,18 +17,13 @@ public class DispenserTest {
     private static final Features.Stage STAGE = Features.builder()
             .setup(BASIC, BasicRandom.Simple::new)
             .prepare();
-    private static final MethodPool<Dispenser> DUMMY = new MethodPool<Dispenser>() {
-        @Override
-        public <R> Function<Dispenser, R> get(final Type<R> type) {
-            throw new IllegalArgumentException("no method found for " + type);
-        }
-    };
     private static final Date THE_DATE = new Date();
+    private static final MethodFault<Dispenser> FAULT = MethodFault.instance();
 
     private final Dispenser subject;
 
     public DispenserTest() {
-        subject = new Dispenser(STAGE, MethodCache.builder(DUMMY)
+        subject = new Dispenser(STAGE, MethodCache.builder(FAULT)
                 .put(int.class, dsp -> 278)
                 .put(Date.class, dsp -> THE_DATE)
                 .build());
