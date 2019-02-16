@@ -1,6 +1,7 @@
 package de.team33.libs.random.v3;
 
 import de.team33.libs.random.misc.Features;
+import de.team33.libs.random.v3.methods.MethodPool;
 import de.team33.libs.typing.v3.Type;
 
 public class Dispenser {
@@ -8,7 +9,7 @@ public class Dispenser {
     private final Features features;
     private final MethodPool<Dispenser> methods;
 
-    Dispenser(final Features.Stage stage, final MethodPool<Dispenser> methods)
+    public Dispenser(final Features.Stage stage, final MethodPool<Dispenser> methods)
     {
         this.features = stage.get();
         this.methods = methods;

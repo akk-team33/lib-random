@@ -1,6 +1,10 @@
-package de.team33.libs.random.v3;
+package de.team33.test.random.v3;
 
 import de.team33.libs.random.misc.Features;
+import de.team33.libs.random.v3.BasicRandom;
+import de.team33.libs.random.v3.Dispenser;
+import de.team33.libs.random.v3.methods.MethodCache;
+import de.team33.libs.random.v3.methods.MethodPool;
 import de.team33.libs.typing.v3.Type;
 import org.junit.Assert;
 import org.junit.Test;
