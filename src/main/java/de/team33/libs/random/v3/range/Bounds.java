@@ -8,8 +8,13 @@ public class Bounds {
     private final long start;
 
     public Bounds(final int start, final int limit) {
+      if (start < limit) {
         this.span = limit - start;
         this.start = start;
+      } else {
+        throw new IllegalArgumentException(String.format("start (%d) must be less than limit (%d)",
+                                                         start, limit));
+      }
     }
 
     public final int projected(final int fullSpectral) {
