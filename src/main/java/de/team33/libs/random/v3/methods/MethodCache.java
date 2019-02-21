@@ -1,5 +1,8 @@
 package de.team33.libs.random.v3.methods;
 
+import static de.team33.libs.random.v3.mapping.Primitives.normal;
+
+import de.team33.libs.random.v3.mapping.Primitives;
 import de.team33.libs.typing.v3.Type;
 
 import java.util.HashMap;
@@ -48,7 +51,7 @@ public final class MethodCache<C> implements MethodPool<C> {
         }
 
         public final <R> Builder<C> put(final Type<R> type, final Function<C, R> method) {
-            map.put(type, method);
+            map.put(normal(type), method);
             return this;
         }
 
