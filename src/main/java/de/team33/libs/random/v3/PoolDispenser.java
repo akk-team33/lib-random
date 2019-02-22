@@ -2,25 +2,34 @@ package de.team33.libs.random.v3;
 
 import static de.team33.libs.random.v3.mapping.Primitives.normal;
 
+import de.team33.libs.random.v3.methods.MethodCache;
 import de.team33.libs.random.v3.methods.MethodPool;
 import de.team33.libs.typing.v3.Type;
 
 
 /**
- * Basic implementation of a dispenser of arbitrary instances of virtually any but defined types.
+ * Implementation of a dispenser that uses a {@link MethodPool}.
  */
-public abstract class PoolDispenser<C> {
+public class PoolDispenser<C> implements Dispenser {
 
-    protected abstract MethodPool<C> getMethods();
+    private final MethodPool<C> methods;
+    private final C context;
 
-    protected abstract C getContext();
-
-    public final <T> T get(final Class<T> type) {
-        return get(Type.of(type));
+    public PoolDispenser(final MethodPool<C> methods, final C context)
+    {
+        this.methods = methods;
+        this.context = context;
     }
 
+  public PoolDispenser(final MethodCache<C> methods)
+  {
+    this.methods = methods;
+    this.context = (C) this;
+  }
+
+  @Override
     public final <T> T get(final Type<T> type) {
-        return getMethods().get(normal(type))
-                           .apply(getContext());
+        return methods.get(normal(type))
+                      .apply(context);
     }
 }

@@ -1,28 +1,26 @@
 package de.team33.test.random.v3;
 
+import java.util.Date;
+
 import de.team33.libs.random.v3.PoolDispenser;
 import de.team33.libs.random.v3.methods.MethodCache;
 import de.team33.libs.random.v3.methods.MethodFault;
-import de.team33.libs.random.v3.methods.MethodPool;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Date;
 
-
-public class PoolDispenserTest
-{
+public class PoolDispenserTest {
 
     private static final Date THE_DATE = new Date();
-    private static final MethodFault<Subject> FAULT = MethodFault.instance();
+    private static final MethodFault<Void> FAULT = MethodFault.instance();
 
-    private final Subject subject;
+    private final PoolDispenser<Void> subject;
 
     public PoolDispenserTest() {
-        subject = new Subject(MethodCache.builder(FAULT)
-                .put(int.class, dsp -> 278)
-                .put(Date.class, dsp -> THE_DATE)
-                .build());
+        subject = new PoolDispenser<>(MethodCache.builder(FAULT)
+                                                 .put(int.class, dsp -> 278)
+                                                 .put(Date.class, dsp -> THE_DATE)
+                                                 .build(), null);
     }
 
     @Test
@@ -35,28 +33,5 @@ public class PoolDispenserTest
         } catch (IllegalArgumentException e) {
             // ok
         }
-    }
-
-    private static class Subject extends PoolDispenser<Subject>
-    {
-
-      private final MethodCache<Subject> methods;
-
-      private Subject(final MethodCache<Subject> methods)
-      {
-        this.methods = methods;
-      }
-
-      @Override
-      protected final MethodPool<Subject> getMethods()
-      {
-        return methods;
-      }
-
-      @Override
-      protected final Subject getContext()
-      {
-        return this;
-      }
     }
 }
