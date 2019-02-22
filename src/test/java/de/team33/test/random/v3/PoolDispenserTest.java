@@ -1,8 +1,6 @@
 package de.team33.test.random.v3;
 
-import de.team33.libs.random.misc.Features;
-import de.team33.libs.random.v3.BasicRandom;
-import de.team33.libs.random.v3.Dispenser;
+import de.team33.libs.random.v3.PoolDispenser;
 import de.team33.libs.random.v3.methods.MethodCache;
 import de.team33.libs.random.v3.methods.MethodFault;
 import de.team33.libs.random.v3.methods.MethodPool;
@@ -12,14 +10,15 @@ import org.junit.Test;
 import java.util.Date;
 
 
-public class DispenserTest {
+public class PoolDispenserTest
+{
 
     private static final Date THE_DATE = new Date();
     private static final MethodFault<Subject> FAULT = MethodFault.instance();
 
     private final Subject subject;
 
-    public DispenserTest() {
+    public PoolDispenserTest() {
         subject = new Subject(MethodCache.builder(FAULT)
                 .put(int.class, dsp -> 278)
                 .put(Date.class, dsp -> THE_DATE)
@@ -38,7 +37,8 @@ public class DispenserTest {
         }
     }
 
-    private static class Subject extends Dispenser<Subject> {
+    private static class Subject extends PoolDispenser<Subject>
+    {
 
       private final MethodCache<Subject> methods;
 

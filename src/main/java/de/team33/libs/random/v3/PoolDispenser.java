@@ -9,7 +9,7 @@ import de.team33.libs.typing.v3.Type;
 /**
  * Basic implementation of a dispenser of arbitrary instances of virtually any but defined types.
  */
-public abstract class Dispenser<C> {
+public abstract class PoolDispenser<C> {
 
     protected abstract MethodPool<C> getMethods();
 

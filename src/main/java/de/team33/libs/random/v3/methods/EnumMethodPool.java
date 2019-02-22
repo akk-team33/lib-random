@@ -2,19 +2,19 @@ package de.team33.libs.random.v3.methods;
 
 import java.util.function.Function;
 
-import de.team33.libs.random.v3.Dispenser;
+import de.team33.libs.random.v3.PoolDispenser;
 import de.team33.libs.random.v3.range.Bounds;
 import de.team33.libs.typing.v3.Type;
 
 
-public class EnumMethodPool<C extends Dispenser<C>> implements MethodPool<C>
+public class EnumMethodPool<C extends PoolDispenser<C>> implements MethodPool<C>
 {
 
-  private final Dispenser<?> dispenser;
+  private final PoolDispenser<?> dispenser;
 
   private final MethodPool<C> fallback;
 
-  public EnumMethodPool(final Dispenser<?> dispenser, final MethodPool<C> fallback)
+  public EnumMethodPool(final PoolDispenser<?> dispenser, final MethodPool<C> fallback)
   {
     this.dispenser = dispenser;
     this.fallback = fallback;
