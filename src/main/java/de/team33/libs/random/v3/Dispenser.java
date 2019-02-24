@@ -1,8 +1,6 @@
 package de.team33.libs.random.v3;
 
-import static de.team33.libs.random.v3.mapping.Primitives.normal;
-
-import de.team33.libs.random.v3.methods.MethodPool;
+import de.team33.libs.provision.v1.Features;
 import de.team33.libs.typing.v3.Type;
 
 
@@ -22,4 +20,6 @@ public interface Dispenser {
      * Retrieves an arbitrary instance of a given type (definite type description).
      */
     <T> T get(Type<T> type);
+
+    Features getFeatures();
 }
