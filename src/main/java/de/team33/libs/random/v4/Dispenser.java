@@ -1,6 +1,5 @@
 package de.team33.libs.random.v4;
 
-import de.team33.libs.provision.v1.Features;
 import de.team33.libs.typing.v3.Type;
 
 
@@ -11,6 +10,8 @@ public interface Dispenser {
 
     /**
      * Retrieves an arbitrary instance of a given type (class).
+     *
+     * @throws IllegalArgumentException when there is no method specified to get an instance of the given type.
      */
     default <T> T get(Class<T> type) {
         return get(Type.of(type));
@@ -18,8 +19,17 @@ public interface Dispenser {
 
     /**
      * Retrieves an arbitrary instance of a given type (definite type description).
+     *
+     * @throws IllegalArgumentException when there is no method specified to get an instance of the given type.
      */
     <T> T get(Type<T> type);
 
-    Features getFeatures();
+    /**
+     * Retrieves an associated feature specified by a key.
+     *
+     * @throws IllegalArgumentException when there is no feature specified for the given key.
+     */
+    <T> T getFeature(Key<T> key);
+
+    interface Key<T> {}
 }
