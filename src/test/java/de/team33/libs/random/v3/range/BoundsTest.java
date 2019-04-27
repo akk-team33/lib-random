@@ -4,6 +4,7 @@ import de.team33.libs.random.v3.BasicRandom;
 import org.junit.Test;
 
 import java.util.function.BiConsumer;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -14,6 +15,13 @@ public class BoundsTest {
     private final BasicRandom simple = BasicRandom.simple();
 
     @Test
+    public final void projectedPositive() {
+        new ProjectedTester(0, 80, 10000).run((tester, step) -> {
+            assertEquals(step.message, true, (tester.start <= step.projected) && (step.projected < tester.limit));
+        });
+    }
+
+    @Test
     public final void projected() {
         new ProjectedTester(-20, 80, 10000).run((tester, step) -> {
             assertEquals(step.message, true, (tester.start <= step.projected) && (step.projected < tester.limit));
@@ -22,8 +30,8 @@ public class BoundsTest {
 
     @Test
     public final void projectedUnique() {
-        new ProjectedTester(-1616, -1615, 10000).run((tester, step) -> {
-            assertEquals(step.message, -1616, step.projected);
+        new ProjectedTester(-2, -1, 10000).run((tester, step) -> {
+            assertEquals(step.message, -2, step.projected);
         });
     }
 
@@ -34,10 +42,11 @@ public class BoundsTest {
         });
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test //(expected = IllegalArgumentException.class)
     public final void projectedNegative() {
-        new ProjectedTester(8, -12, 10000).run((tester, step) -> {
-            fail(step.message);
+        new ProjectedTester(800000000, -1200000000, 10000000).run((tester, step) -> {
+            assertEquals(step.message, true, (tester.start > step.projected) || (step.projected >= tester.limit));
+            //fail(step.message);
         });
     }
 
@@ -55,10 +64,10 @@ public class BoundsTest {
 
     @Test
     public final void projectedMax() {
-        final Bounds bounds = new Bounds(Integer.MIN_VALUE, Integer.MAX_VALUE);
-        for (int i = 0; i < 1000; ++i) {
-            assertEquals("i = " + i, i, bounds.projected(i));
-        }
+        final Bounds bounds = new Bounds(Integer.MIN_VALUE);
+        IntStream.of(Integer.MIN_VALUE, -56172635, -1, 0, 1, 7635123, Integer.MAX_VALUE).forEach(i -> {
+            assertEquals("i = " + i, i, bounds.projected((int) i));
+        });
     }
 
     private class ProjectedTester {
