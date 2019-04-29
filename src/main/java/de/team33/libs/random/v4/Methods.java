@@ -4,9 +4,10 @@ import java.util.function.Function;
 
 import de.team33.libs.typing.v3.Type;
 
-abstract class MethodPool {
+abstract class Methods
+{
 
-    static final MethodPool FAIL = new MethodPool() {
+    static final Methods FAIL = new Methods() {
         @Override
         final <T> Function<Dispenser, T> get(final Type<T> type) {
             throw new IllegalArgumentException("No method specified for " + type);
