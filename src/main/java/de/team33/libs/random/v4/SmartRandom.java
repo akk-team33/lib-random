@@ -2,7 +2,6 @@ package de.team33.libs.random.v4;
 
 import de.team33.libs.typing.v3.Type;
 
-import java.util.Date;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -12,7 +11,8 @@ public class SmartRandom extends DispenserBase {
     private final Features features;
 
     private SmartRandom(final Supplier<Features> features) {
-        this.features = features.get();
+      super(methods);
+      this.features = features.get();
     }
 
     public static Builder builder() {
