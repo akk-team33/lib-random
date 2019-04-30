@@ -9,11 +9,7 @@ import java.util.function.Function;
 import de.team33.libs.typing.v3.Type;
 
 
-class MethodCache extends Methods
-{
-    private static final Map<Class, Class> NORMAL = new HashMap<Class, Class>() {{
-      put(boolean.class, Boolean.class);
-    }};
+class MethodCache extends Methods {
 
     private final Map<Type, Function> core;
     private final Methods fallback;
@@ -25,14 +21,7 @@ class MethodCache extends Methods
 
     @Override
     final <T> Function<Dispenser, T> get(final Type<T> type) {
-        return getNormalized(normal(type));
-    }
-
-    private <T> Type<T> normal(final Type<T> type) {
-      //noinspection unchecked
-      return Optional.ofNullable((Class<T>) NORMAL.get(type.getUnderlyingClass()))
-                .map(Type::of)
-                .orElse(type);
+        return getNormalized(type);
     }
 
     private <T> Function<Dispenser, T> getNormalized(final Type<T> type) {
@@ -54,8 +43,10 @@ class MethodCache extends Methods
             return this;
         }
 
-        final <T> Builder put(final Type<T> type, final Function<Dispenser, T> method) {
-            core.put(type, method);
+        final <T> Builder put(final Type<T> type0, final Function<Dispenser, T> method) {
+            for ( final Type<T> type : Types.list(type0) ) {
+                core.put(type, method);
+            }
             return this;
         }
 
