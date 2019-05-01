@@ -13,9 +13,7 @@ public interface Dispenser {
      *
      * @throws IllegalArgumentException when there is no method specified to get an instance of the given type.
      */
-    default <T> T get(Class<T> type) {
-        return get(Type.of(type));
-    }
+    <T> T get(Class<T> type);
 
     /**
      * Retrieves an arbitrary instance of a given type (definite type description).

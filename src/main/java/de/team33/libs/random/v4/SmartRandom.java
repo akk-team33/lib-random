@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 import de.team33.libs.typing.v3.Type;
 
 
-public class SmartRandom extends DispenserBase {
+public final class SmartRandom extends DispenserBase {
 
     private SmartRandom(final Stage stage) {
       super(stage.methods, stage.features.get());

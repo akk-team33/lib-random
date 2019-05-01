@@ -14,44 +14,52 @@ import java.util.stream.Stream;
 import de.team33.libs.typing.v3.Type;
 
 
-class Types {
+final class Types {
 
+    @SuppressWarnings("rawtypes")
     private static final Map<Type, List> MAPPING = Inner.newMapping();
 
-    static <T> List<Type<T>> list(final Type<T> type) {
-      //noinspection unchecked
-      return Optional.ofNullable((List<Type<T>>) MAPPING.get(type))
-                       .orElseGet(() -> singletonList(type));
+    private Types() {
     }
 
-    private static class Inner {
+    static <T> List<Type<T>> list(final Type<T> type) {
+        //noinspection unchecked
+        return Optional.ofNullable((List<Type<T>>) MAPPING.get(type))
+                .orElseGet(() -> singletonList(type));
+    }
 
+    private static final class Inner {
+
+        @SuppressWarnings("rawtypes")
         private static final Class[][] EQUIVALENT = {
-            {boolean.class, Boolean.class},
-            {byte.class, Byte.class},
-            {short.class, Short.class},
-            {int.class, Integer.class},
-            {long.class, Long.class},
-            {float.class, Float.class},
-            {double.class, Double.class},
-            {char.class, Character.class}
+                {boolean.class, Boolean.class},
+                {byte.class, Byte.class},
+                {short.class, Short.class},
+                {int.class, Integer.class},
+                {long.class, Long.class},
+                {float.class, Float.class},
+                {double.class, Double.class},
+                {char.class, Character.class}
         };
 
+        @SuppressWarnings("rawtypes")
         private static Map<Type, List> newMapping() {
             return unmodifiableMap(
-              Stream.of(EQUIVALENT)
-                    .map(Inner::toTypeList)
-                    .collect(HashMap::new, Inner::put, Map::putAll)
+                    Stream.of(EQUIVALENT)
+                            .map(Inner::toTypeList)
+                            .collect(HashMap::new, Inner::put, Map::putAll)
             );
         }
 
-        private static List<? extends Type> toTypeList(final Class<?>[] classes) {
+        @SuppressWarnings("rawtypes")
+        private static List<Type> toTypeList(final Class<?>[] classes) {
             return Stream.of(classes)
-                         .map(Type::of)
-                         .collect(toList());
+                    .map(Type::of)
+                    .collect(toList());
         }
 
-        private static void put(final Map<Type, List> map, final List<? extends Type> list) {
+        @SuppressWarnings("rawtypes")
+        private static void put(final Map<? super Type, ? super List> map, final List<? extends Type> list) {
             list.forEach(type -> map.put(type, unmodifiableList(list)));
         }
     }
