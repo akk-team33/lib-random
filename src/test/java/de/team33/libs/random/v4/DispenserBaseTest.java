@@ -29,19 +29,19 @@ public class DispenserBaseTest {
 
     @Test
     public final void anyBoolean() {
-        assertEquals(TRUE, dsp.get(boolean.class));
-        assertEquals(TRUE, dsp.get(Boolean.class));
+        assertEquals(TRUE, dsp.any(boolean.class));
+        assertEquals(TRUE, dsp.any(Boolean.class));
     }
 
     @Test
     public final void anyByte() {
-        assertEquals(BYTE27, dsp.get(byte.class));
-        assertEquals(BYTE27, dsp.get(Byte.class));
+        assertEquals(BYTE27, dsp.any(byte.class));
+        assertEquals(BYTE27, dsp.any(Byte.class));
     }
 
     @Test
     public final void anyLong() {
-        assertEquals(LONG278, dsp.get(long.class));
-        assertEquals(LONG278, dsp.get(Long.class));
+        assertEquals(LONG278, dsp.any(long.class));
+        assertEquals(LONG278, dsp.any(Long.class));
     }
 }

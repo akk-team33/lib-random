@@ -17,15 +17,15 @@ class DispenserBase implements Dispenser {
      * {@inheritDoc}
      */
     @Override
-    public final <T> T get(final Class<T> type) {
-        return get(Type.of(type));
+    public final <T> T any(final Class<T> type) {
+        return any(Type.of(type));
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final <T> T get(final Type<T> type) {
+    public final <T> T any(final Type<T> type) {
         return methods.get(type).apply(this);
     }
 

@@ -25,19 +25,19 @@ public class SmartRandomTest {
 
     @Test
     public final void anyBoolean() {
-        assertEquals(TRUE, random.get(boolean.class));
-        assertEquals(TRUE, random.get(Boolean.class));
+        assertEquals(TRUE, random.any(boolean.class));
+        assertEquals(TRUE, random.any(Boolean.class));
     }
 
     @Test
     public final void anyByte() {
-        assertEquals(BYTE27, random.get(byte.class));
-        assertEquals(BYTE27, random.get(Byte.class));
+        assertEquals(BYTE27, random.any(byte.class));
+        assertEquals(BYTE27, random.any(Byte.class));
     }
 
     @Test
     public final void anyLong() {
-      assertEquals(LONG278, random.get(long.class));
-      assertEquals(LONG278, random.get(Long.class));
+      assertEquals(LONG278, random.any(long.class));
+      assertEquals(LONG278, random.any(Long.class));
     }
 }

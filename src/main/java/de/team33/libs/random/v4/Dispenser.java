@@ -13,14 +13,14 @@ public interface Dispenser {
      *
      * @throws IllegalArgumentException when there is no method specified to get an instance of the given type.
      */
-    <T> T get(Class<T> type);
+    <T> T any(Class<T> type);
 
     /**
      * Retrieves an arbitrary instance of a given type (definite type description).
      *
      * @throws IllegalArgumentException when there is no method specified to get an instance of the given type.
      */
-    <T> T get(Type<T> type);
+    <T> T any(Type<T> type);
 
     /**
      * Retrieves an associated feature specified by a key.
