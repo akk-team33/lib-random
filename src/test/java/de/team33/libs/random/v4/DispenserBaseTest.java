@@ -25,7 +25,7 @@ public class DispenserBaseTest {
     private static final Supplier<Features> FEATURES = new Features.Builder()
             .prepare();
 
-    private final DispenserBase dsp = new DispenserBase(METHODS, FEATURES.get());
+    private final Dispenser dsp = new DispenserBase(METHODS, FEATURES.get());
 
     @Test
     public final void anyBoolean() {

@@ -9,8 +9,9 @@ import java.util.function.Function;
 import de.team33.libs.typing.v3.Type;
 
 
-class MethodCache extends Methods {
+final class MethodCache extends Methods {
 
+    @SuppressWarnings("rawtypes")
     private final Map<Type, Function> core;
     private final Methods fallback;
 
@@ -36,7 +37,8 @@ class MethodCache extends Methods {
     static class Builder {
 
         private Methods fallback = Methods.FAIL;
-        private Map<Type, Function> core = new HashMap<>(0);
+        @SuppressWarnings("rawtypes")
+        private final Map<Type, Function> core = new HashMap<>(0);
 
         final Builder setFallback(final Methods fallback) {
             this.fallback = fallback;

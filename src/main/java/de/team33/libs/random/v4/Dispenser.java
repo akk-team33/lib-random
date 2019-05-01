@@ -29,5 +29,8 @@ public interface Dispenser {
      */
     <T> T getFeature(Key<T> key);
 
+    /**
+     * Abstraction of a key to identify a feature of a specific type.
+     */
     interface Key<T> {}
 }

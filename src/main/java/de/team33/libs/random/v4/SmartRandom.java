@@ -16,7 +16,7 @@ public final class SmartRandom extends DispenserBase {
         return new Builder();
     }
 
-    private static class Stage implements Supplier<SmartRandom> {
+    private static final class Stage implements Supplier<SmartRandom> {
 
         private final Supplier<Features> features;
         private final MethodCache methods;
@@ -32,7 +32,7 @@ public final class SmartRandom extends DispenserBase {
         }
     }
 
-    public static class Builder {
+    public static final class Builder {
 
         private final Features.Builder features = new Features.Builder();
         private final MethodCache.Builder methods = new MethodCache.Builder();
