@@ -4,6 +4,7 @@ import static java.lang.Boolean.TRUE;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Date;
 import java.util.function.Supplier;
 
 import de.team33.libs.typing.v3.Type;
@@ -15,6 +16,8 @@ public class DispenserBaseTest {
 
     private static final Byte BYTE27 = (byte) 27;
     private static final Long LONG278 = (long) 278;
+    private static final Dispenser.Key<Date> KEY = new Dispenser.Key<Date>(){};
+    private static final Date DATE = new Date();
 
     private static final Methods METHODS = new MethodCache.Builder()
             .put(Type.of(Boolean.class), dsp -> TRUE)
@@ -23,6 +26,7 @@ public class DispenserBaseTest {
             .build();
 
     private static final Supplier<Features> FEATURES = new Features.Builder()
+            .setup(KEY, () -> DATE)
             .prepare();
 
     private final Dispenser dsp = new DispenserBase(METHODS, FEATURES.get());
@@ -43,5 +47,10 @@ public class DispenserBaseTest {
     public final void anyLong() {
         assertEquals(LONG278, dsp.any(long.class));
         assertEquals(LONG278, dsp.any(Long.class));
+    }
+
+    @Test
+    public final void getFeature() {
+        assertEquals(DATE, dsp.getFeature(KEY));
     }
 }

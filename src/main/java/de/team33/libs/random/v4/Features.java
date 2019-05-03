@@ -40,8 +40,9 @@ final class Features {
             return () -> new Features(template);
         }
 
-        final <T> void setup(final Dispenser.Key<T> key, final Supplier<T> supplier) {
+        final <T> Builder setup(final Dispenser.Key<T> key, final Supplier<T> supplier) {
             backing.put(key, supplier);
+            return this;
         }
     }
 }
