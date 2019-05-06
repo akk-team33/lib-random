@@ -1,5 +1,6 @@
 package de.team33.libs.random.v4;
 
+import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -13,7 +14,15 @@ public final class SmartRandom extends DispenserBase {
     }
 
     public static Builder builder() {
-        return new Builder();
+        //noinspection NumericCastThatLosesPrecision
+        return new Builder()
+                .set(boolean.class, dsp -> new Random().nextBoolean())
+                .set(byte.class, dsp -> (byte) new Random().nextInt())
+                .set(short.class, dsp -> (short) new Random().nextInt())
+                .set(int.class, dsp -> new Random().nextInt())
+                .set(long.class, dsp -> new Random().nextLong())
+                .set(float.class, dsp -> (float) new Random().nextDouble())
+                .set(double.class, dsp -> new Random().nextDouble());
     }
 
     private static final class Stage implements Supplier<SmartRandom> {
