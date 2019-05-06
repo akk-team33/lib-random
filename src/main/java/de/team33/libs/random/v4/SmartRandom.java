@@ -47,7 +47,8 @@ public final class SmartRandom extends DispenserBase {
     public static final class Builder {
 
         private final Features.Builder features = new Features.Builder();
-        private final MethodCache.Builder methods = new MethodCache.Builder();
+        private final MethodCache.Builder methods = new MethodCache.Builder()
+                .setFallback(new Methods4Enum());
 
         private Builder() {
         }

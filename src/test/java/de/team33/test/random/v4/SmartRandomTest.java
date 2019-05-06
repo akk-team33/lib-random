@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import de.team33.libs.random.v4.SmartRandom;
@@ -36,7 +37,8 @@ public class SmartRandomTest {
                 double.class,
                 Double.class,
                 char.class,
-                Character.class
+                Character.class,
+                TimeUnit.class
         )) {
             final Object any = random.any(type);
             assertNotNull(any);
