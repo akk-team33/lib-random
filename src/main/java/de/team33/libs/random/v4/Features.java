@@ -1,14 +1,11 @@
 package de.team33.libs.random.v4;
 
-import java.util.Collections;
+import static java.util.Collections.unmodifiableMap;
+
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
-
-import static java.util.Collections.unmodifiableMap;
-import static java.util.stream.Collectors.toMap;
 
 final class Features {
 
@@ -19,10 +16,6 @@ final class Features {
     private Features(final Map<Dispenser.Key<?>, Supplier<?>> template) {
         this.template = template;
         this.map = new HashMap<>();
-    }
-
-    private static Object getValue(final Map.Entry<Dispenser.Key<?>, ? extends Supplier<?>> entry) {
-        return entry.getValue().get();
     }
 
     final <T> T get(final Dispenser.Key<T> key) {
