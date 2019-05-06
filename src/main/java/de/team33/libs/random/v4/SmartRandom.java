@@ -4,6 +4,7 @@ import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import de.team33.libs.identification.v1.Unique;
 import de.team33.libs.typing.v3.Type;
 
 
@@ -16,13 +17,15 @@ public final class SmartRandom extends DispenserBase {
     public static Builder builder() {
         //noinspection NumericCastThatLosesPrecision
         return new Builder()
-                .set(boolean.class, dsp -> new Random().nextBoolean())
-                .set(byte.class, dsp -> (byte) new Random().nextInt())
-                .set(short.class, dsp -> (short) new Random().nextInt())
-                .set(int.class, dsp -> new Random().nextInt())
-                .set(long.class, dsp -> new Random().nextLong())
-                .set(float.class, dsp -> (float) new Random().nextDouble())
-                .set(double.class, dsp -> new Random().nextDouble());
+                .setFeature(Key.BASIC, Random::new)
+                .set(boolean.class, dsp -> dsp.getFeature(Key.BASIC).nextBoolean())
+                .set(byte.class, dsp -> (byte) dsp.getFeature(Key.BASIC).nextInt())
+                .set(short.class, dsp -> (short) dsp.getFeature(Key.BASIC).nextInt())
+                .set(int.class, dsp -> dsp.getFeature(Key.BASIC).nextInt())
+                .set(long.class, dsp -> dsp.getFeature(Key.BASIC).nextLong())
+                .set(float.class, dsp -> (float) dsp.getFeature(Key.BASIC).nextDouble())
+                .set(double.class, dsp -> dsp.getFeature(Key.BASIC).nextDouble())
+                .set(char.class, dsp -> (char) dsp.getFeature(Key.BASIC).nextInt());
     }
 
     private static final class Stage implements Supplier<SmartRandom> {
@@ -71,5 +74,10 @@ public final class SmartRandom extends DispenserBase {
             methods.put(type, method);
             return this;
         }
+    }
+
+    public static class Key<T> extends Unique implements Dispenser.Key<T> {
+
+      public static final Key<Random> BASIC = new Key<>();
     }
 }

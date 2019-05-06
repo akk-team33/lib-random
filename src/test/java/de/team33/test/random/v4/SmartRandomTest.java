@@ -17,35 +17,6 @@ import org.junit.Test;
 @SuppressWarnings("JUnitTestMethodWithNoAssertions")
 public class SmartRandomTest {
 
-    private static final Byte BYTE27 = (byte) 27;
-    private static final Long LONG278 = (long) 278;
-
-    private static final Supplier<SmartRandom> RANDOM = SmartRandom.builder()
-                                                                   .set(Boolean.class, rnd -> TRUE)
-                                                                   .set(Byte.class, rnd -> BYTE27)
-                                                                   .set(long.class, rnd -> LONG278)
-                                                                   .prepare();
-
-    private final SmartRandom random = RANDOM.get();
-
-    @Test
-    public final void anyBoolean() {
-        assertEquals(TRUE, random.any(boolean.class));
-        assertEquals(TRUE, random.any(Boolean.class));
-    }
-
-    @Test
-    public final void anyByte() {
-        assertEquals(BYTE27, random.any(byte.class));
-        assertEquals(BYTE27, random.any(Byte.class));
-    }
-
-    @Test
-    public final void anyLong() {
-        assertEquals(LONG278, random.any(long.class));
-        assertEquals(LONG278, random.any(Long.class));
-    }
-
     @Test
     public final void anyByClass() {
         final SmartRandom random = SmartRandom.builder().build();
