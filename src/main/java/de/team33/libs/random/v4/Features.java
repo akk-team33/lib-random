@@ -1,6 +1,8 @@
 package de.team33.libs.random.v4;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -10,14 +12,13 @@ import static java.util.stream.Collectors.toMap;
 
 final class Features {
 
+    private final Map<Dispenser.Key<?>, Supplier<?>> template;
+
     private final Map<Dispenser.Key<?>, Object> map;
 
     private Features(final Map<Dispenser.Key<?>, Supplier<?>> template) {
-        this.map = unmodifiableMap(
-                template.entrySet()
-                        .stream()
-                        .collect(toMap(Map.Entry::getKey, Features::getValue))
-        );
+        this.template = template;
+        this.map = new HashMap<>();
     }
 
     private static Object getValue(final Map.Entry<Dispenser.Key<?>, ? extends Supplier<?>> entry) {
@@ -28,7 +29,18 @@ final class Features {
         //noinspection unchecked
         return Optional
                 .ofNullable((T) map.get(key))
-                .orElseThrow(() -> new IllegalArgumentException("No feature specified for key: " + key));
+                .orElseGet(() -> {
+                  final T result = getMethod(key).get();
+                  map.put(key, result);
+                  return result;
+                });
+    }
+
+    private <T> Supplier<T> getMethod(final Dispenser.Key<T> key) {
+      //noinspection unchecked
+      return Optional
+          .ofNullable((Supplier<T>) template.get(key))
+          .orElseThrow(() -> new IllegalArgumentException("No feature specified for key: " + key));
     }
 
     static class Builder {
@@ -36,7 +48,7 @@ final class Features {
         private final Map<Dispenser.Key<?>, Supplier<?>> backing = new HashMap<>(0);
 
         final Supplier<Features> prepare() {
-            final Map<Dispenser.Key<?>, Supplier<?>> template = new HashMap<>(backing);
+            final Map<Dispenser.Key<?>, Supplier<?>> template = unmodifiableMap(new HashMap<>(backing));
             return () -> new Features(template);
         }
 
