@@ -26,7 +26,8 @@ class Methods4Enum extends Methods {
     }
 
     private static <T> Function<Dispenser, T> toMethod(final List<? extends T> values) {
-        return dsp -> values.get(dsp.any(int.class) % values.size());
+        final Bounds bounds = new Bounds(values.size());
+        return dsp -> values.get(bounds.limited(dsp.any(int.class)));
     }
 
     @SuppressWarnings({"OptionalContainsCollection", "unchecked", "rawtypes", "ReturnOfNull", "OverlyLongLambda"})
