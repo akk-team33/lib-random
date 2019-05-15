@@ -48,7 +48,7 @@ public final class SmartRandom extends DispenserBase {
 
         private final Features.Builder features = new Features.Builder();
         private final MethodCache.Builder methods = new MethodCache.Builder()
-                .setFallback(new Methods4Enum());
+                .setFallback(new Methods4Enum(Methods.FAIL));
 
         private Builder() {
         }
@@ -63,7 +63,6 @@ public final class SmartRandom extends DispenserBase {
         }
 
         public final Supplier<SmartRandom> prepare() {
-            final Supplier<Features> template = features.prepare();
             return new Stage(this);
         }
 

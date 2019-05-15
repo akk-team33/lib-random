@@ -14,7 +14,11 @@ class Methods4Enum extends Methods {
     @SuppressWarnings("rawtypes")
     private static final Map<Type, List> CACHE = new ConcurrentHashMap<>(0);
 
-    private final Methods fallback = Methods.FAIL;
+    private final Methods fallback;
+
+    Methods4Enum(final Methods fallback) {
+        this.fallback = fallback;
+    }
 
     @Override
     final <T> Function<Dispenser, T> get(final Type<T> type) {
