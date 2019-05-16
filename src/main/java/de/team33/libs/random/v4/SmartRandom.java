@@ -48,7 +48,11 @@ public final class SmartRandom extends DispenserBase {
 
         private final Features.Builder features = new Features.Builder();
         private final MethodPool.Builder methods = new MethodPool.Builder()
-                .setFallback(new Methods4Enum(Methods.FAIL));
+                .setFallback(
+                    new Methods4Arrays(
+                        new Methods4Enum(Methods.FAIL)
+                    )
+                );
 
         private Builder() {
         }
