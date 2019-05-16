@@ -19,7 +19,7 @@ public class DispenserBaseTest {
     private static final Dispenser.Key<Date> KEY = new Dispenser.Key<Date>(){};
     private static final Date DATE = new Date();
 
-    private static final Methods METHODS = new MethodCache.Builder()
+    private static final Methods METHODS = new MethodPool.Builder()
             .put(Type.of(Boolean.class), dsp -> TRUE)
             .put(Type.of(Byte.class), dsp -> BYTE27)
             .put(Type.of(long.class), dsp -> LONG278)

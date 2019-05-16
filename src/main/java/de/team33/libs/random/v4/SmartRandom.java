@@ -31,7 +31,7 @@ public final class SmartRandom extends DispenserBase {
     private static final class Stage implements Supplier<SmartRandom> {
 
         private final Supplier<Features> features;
-        private final MethodCache methods;
+        private final MethodPool methods;
 
         private Stage(final Builder builder) {
             this.features = builder.features.prepare();
@@ -47,7 +47,7 @@ public final class SmartRandom extends DispenserBase {
     public static final class Builder {
 
         private final Features.Builder features = new Features.Builder();
-        private final MethodCache.Builder methods = new MethodCache.Builder()
+        private final MethodPool.Builder methods = new MethodPool.Builder()
                 .setFallback(new Methods4Enum(Methods.FAIL));
 
         private Builder() {

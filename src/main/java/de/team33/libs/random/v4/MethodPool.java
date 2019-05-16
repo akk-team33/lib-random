@@ -9,13 +9,13 @@ import java.util.function.Function;
 import de.team33.libs.typing.v3.Type;
 
 
-final class MethodCache extends Methods {
+final class MethodPool extends Methods {
 
     @SuppressWarnings("rawtypes")
     private final Map<Type, Function> core;
     private final Methods fallback;
 
-    private MethodCache(final Builder builder) {
+    private MethodPool(final Builder builder) {
         this.fallback = builder.fallback;
         this.core = new ConcurrentHashMap<>(builder.core);
     }
@@ -52,8 +52,8 @@ final class MethodCache extends Methods {
             return this;
         }
 
-        final MethodCache build() {
-            return new MethodCache(this);
+        final MethodPool build() {
+            return new MethodPool(this);
         }
     }
 }
