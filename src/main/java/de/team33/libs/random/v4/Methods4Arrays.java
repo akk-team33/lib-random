@@ -25,6 +25,10 @@ class Methods4Arrays extends Methods {
         return dsp -> {
           final int length = BOUNDS.limited(dsp.any(int.class));
           final Object result = Array.newInstance(componentType, length);
+          for ( int index = 0; index < length; ++index )
+          {
+            Array.set(result, index, dsp.any(type.getActualParameters().get(0)));
+          }
           return (T)result;
         };
       }

@@ -3,6 +3,7 @@ package de.team33.test.random.v4;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -28,16 +29,32 @@ public class SmartRandomTest {
           CaseFormat[].class
         )) {
             final Object any = random.any(type);
-            assertNotNull(any);
-            assertTrue("expected "
-                    + type.getCanonicalName()
-                    + " but was "
-                    + any.getClass().getCanonicalName(),
-                    Typex.isInstance(type, any));
+            assertType(type, any);
         }
     }
 
-    @Test
+    private void assertType(final Class<?> type, final Object value) {
+      assertType(type, type, value);
+    }
+
+    private void assertType(final Class<?> context, final Class<?> type, final Object value) {
+      final String message =
+        "[" + context.getCanonicalName() + "] expected " + type.getCanonicalName() + " but was ";
+      assertNotNull(message + "null", value);
+      assertTrue(message + value.getClass().getCanonicalName(), Typex.isInstance(type, value));
+      if (value.getClass().isArray()) {
+          assertArrayElementsType(context, type, value);
+      }
+    }
+
+  private void assertArrayElementsType(final Class<?> context, final Class<?> type, final Object value)
+  {
+    for ( int index = 0; index < Array.getLength(value); ++index ) {
+        assertType(context, type.getComponentType(), Array.get(value, index));
+    }
+  }
+
+  @Test
     public final void anyByType() {
     }
 }
