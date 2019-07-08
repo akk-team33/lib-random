@@ -8,25 +8,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 class Methods4Enum extends Methods {
+
+    static final Predicate<Type<?>> PREDICATE = type -> type.getUnderlyingClass().isEnum();
+    static final Methods4Enum INSTANCE = new Methods4Enum();
 
     @SuppressWarnings("rawtypes")
     private static final Map<Type, List> CACHE = new ConcurrentHashMap<>(0);
 
-    private final Methods fallback;
-
-    Methods4Enum(final Methods fallback) {
-        this.fallback = fallback;
-    }
-
     @Override
     final <T> Function<Dispenser, T> get(final Type<T> type) {
-        //noinspection unchecked
-        return Optional
-                .ofNullable(enumValues(type))
-                .map(Methods4Enum::toMethod)
-                .orElseGet(() -> fallback.get(type));
+        return toMethod(enumValues(type));
     }
 
     private static <T> Function<Dispenser, T> toMethod(final List<? extends T> values) {

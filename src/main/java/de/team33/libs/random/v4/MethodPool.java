@@ -6,17 +6,21 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import de.team33.libs.random.v4.proto.Selector;
 import de.team33.libs.typing.v3.Type;
 
 
 final class MethodPool extends Methods {
 
+    private static final Function<Type<?>, Methods> FALLBACK = new Selector<Type<?>, Methods>()
+            .when(Methods4Arrays.PREDICATE).then(Methods4Arrays.INSTANCE)
+            .orWhen(Methods4Enum.PREDICATE).then(Methods4Enum.INSTANCE)
+            .orElseThrow(type -> new IllegalArgumentException("No method specified for type " + type));
+
     @SuppressWarnings("rawtypes")
     private final Map<Type, Function> core;
-    private final Methods fallback;
 
     private MethodPool(final Builder builder) {
-        this.fallback = builder.fallback;
         this.core = new ConcurrentHashMap<>(builder.core);
     }
 
@@ -28,7 +32,7 @@ final class MethodPool extends Methods {
     private <T> Function<Dispenser, T> getNormalized(final Type<T> type) {
         //noinspection unchecked
         return Optional.ofNullable((Function<Dispenser, T>) core.get(type)).orElseGet(() -> {
-            final Function<Dispenser, T> result = fallback.get(type);
+            final Function<Dispenser, T> result = FALLBACK.apply(type).get(type);
             core.put(type, result);
             return result;
         });
@@ -36,14 +40,8 @@ final class MethodPool extends Methods {
 
     static class Builder {
 
-        private Methods fallback = Methods.FAIL;
         @SuppressWarnings("rawtypes")
         private final Map<Type, Function> core = new HashMap<>(0);
-
-        final Builder setFallback(final Methods fallback) {
-            this.fallback = fallback;
-            return this;
-        }
 
         final <T> Builder put(final Type<T> type0, final Function<Dispenser, T> method) {
             for ( final Type<T> type : Types.list(type0) ) {

@@ -1,17 +1,17 @@
 package de.team33.libs.random.v4;
 
+import de.team33.libs.identification.v1.Unique;
+import de.team33.libs.typing.v3.Type;
+
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import de.team33.libs.identification.v1.Unique;
-import de.team33.libs.typing.v3.Type;
 
 
 public final class SmartRandom extends DispenserBase {
 
     private SmartRandom(final Stage stage) {
-      super(stage.methods, stage.features.get());
+        super(stage.methods, stage.features.get());
     }
 
     public static Builder builder() {
@@ -47,12 +47,7 @@ public final class SmartRandom extends DispenserBase {
     public static final class Builder {
 
         private final Features.Builder features = new Features.Builder();
-        private final MethodPool.Builder methods = new MethodPool.Builder()
-                .setFallback(
-                    new Methods4Arrays(
-                        new Methods4Enum(Methods.FAIL)
-                    )
-                );
+        private final MethodPool.Builder methods = new MethodPool.Builder();
 
         private Builder() {
         }
@@ -82,6 +77,6 @@ public final class SmartRandom extends DispenserBase {
 
     public static class Key<T> extends Unique implements Dispenser.Key<T> {
 
-      public static final Key<Random> BASIC = new Key<>();
+        public static final Key<Random> BASIC = new Key<>();
     }
 }
