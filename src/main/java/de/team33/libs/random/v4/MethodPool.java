@@ -26,10 +26,6 @@ final class MethodPool extends Methods {
 
     @Override
     final <T> Function<Dispenser, T> get(final Type<T> type) {
-        return getNormalized(type);
-    }
-
-    private <T> Function<Dispenser, T> getNormalized(final Type<T> type) {
         //noinspection unchecked
         return Optional.ofNullable((Function<Dispenser, T>) core.get(type)).orElseGet(() -> {
             final Function<Dispenser, T> result = FALLBACK.apply(type).get(type);
