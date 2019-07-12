@@ -12,11 +12,6 @@ import de.team33.libs.typing.v3.Type;
 
 final class MethodPool extends Methods {
 
-    private static final Function<Type<?>, Methods> FALLBACK = new Selector<Type<?>, Methods>()
-            .when(Methods4Arrays.PREDICATE).then(Methods4Arrays.INSTANCE)
-            .orWhen(Methods4Enum.PREDICATE).then(Methods4Enum.INSTANCE)
-            .orElseThrow(type -> new IllegalArgumentException("No method specified for type " + type));
-
     @SuppressWarnings("rawtypes")
     private final Map<Type, Function> core;
 
@@ -28,7 +23,7 @@ final class MethodPool extends Methods {
     final <T> Function<Dispenser, T> get(final Type<T> type) {
         //noinspection unchecked
         return Optional.ofNullable((Function<Dispenser, T>) core.get(type)).orElseGet(() -> {
-            final Function<Dispenser, T> result = FALLBACK.apply(type).get(type);
+            final Function<Dispenser, T> result = MethodsCombo.INSTANCE.get(type);
             core.put(type, result);
             return result;
         });
