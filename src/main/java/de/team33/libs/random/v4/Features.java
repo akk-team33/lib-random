@@ -1,39 +1,52 @@
 package de.team33.libs.random.v4;
 
-import static java.util.Collections.unmodifiableMap;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import static java.util.Collections.unmodifiableMap;
+
 final class Features {
 
     private final Map<Dispenser.Key<?>, Supplier<?>> template;
-
-    private final Map<Dispenser.Key<?>, Object> map;
+    private final Map<Dispenser.Key<?>, Object> output;
 
     private Features(final Map<Dispenser.Key<?>, Supplier<?>> template) {
         this.template = template;
-        this.map = new HashMap<>();
+        this.output = new HashMap<>();
     }
 
     final <T> T get(final Dispenser.Key<T> key) {
         //noinspection unchecked
         return Optional
-                .ofNullable((T) map.get(key))
+                .ofNullable((T) output.get(key))
                 .orElseGet(() -> {
-                  final T result = getMethod(key).get();
-                  map.put(key, result);
-                  return result;
+                    final T result = getMethod(key).get();
+                    output.put(key, result);
+                    return result;
                 });
     }
 
     private <T> Supplier<T> getMethod(final Dispenser.Key<T> key) {
-      //noinspection unchecked
-      return Optional
-          .ofNullable((Supplier<T>) template.get(key))
-          .orElseThrow(() -> new IllegalArgumentException("No feature specified for key: " + key));
+        //noinspection unchecked
+        return Optional
+                .ofNullable((Supplier<T>) template.get(key))
+                .orElseThrow(() -> new IllegalArgumentException("No feature specified for key: " + key));
+    }
+
+    private static class Stage implements Supplier<Features> {
+
+        private final Map<Dispenser.Key<?>, Supplier<?>> template;
+
+        private Stage(final Map<Dispenser.Key<?>, Supplier<?>> template) {
+            this.template = unmodifiableMap(new HashMap<>(template));
+        }
+
+        @Override
+        public Features get() {
+            return new Features(template);
+        }
     }
 
     static class Builder {
@@ -41,8 +54,7 @@ final class Features {
         private final Map<Dispenser.Key<?>, Supplier<?>> backing = new HashMap<>(0);
 
         final Supplier<Features> prepare() {
-            final Map<Dispenser.Key<?>, Supplier<?>> template = unmodifiableMap(new HashMap<>(backing));
-            return () -> new Features(template);
+            return new Stage(backing);
         }
 
         final <T> Builder setup(final Dispenser.Key<T> key, final Supplier<T> supplier) {

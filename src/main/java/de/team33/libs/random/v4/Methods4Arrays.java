@@ -9,7 +9,6 @@ import java.util.function.Predicate;
 
 class Methods4Arrays extends Methods {
 
-    static final Predicate<Type<?>> PREDICATE = type -> type.getUnderlyingClass().isArray();
     static final Methods4Arrays INSTANCE = new Methods4Arrays();
 
     private static final Bounds BOUNDS = new Bounds(1, 8);
@@ -26,5 +25,9 @@ class Methods4Arrays extends Methods {
             }
             return (T) result;
         };
+    }
+
+    static boolean test(final Type<?> type) {
+        return type.getUnderlyingClass().isArray();
     }
 }

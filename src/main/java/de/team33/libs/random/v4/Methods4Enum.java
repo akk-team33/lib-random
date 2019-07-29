@@ -50,4 +50,8 @@ class Methods4Enum extends Methods {
     private static <T> Class<T> enumClass(final Class type) {
         return type.isEnum() ? type : null;
     }
+
+    public static boolean test(final Type<?> type) {
+        return type.getUnderlyingClass().isEnum();
+    }
 }
