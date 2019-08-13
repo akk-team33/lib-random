@@ -25,7 +25,8 @@ public final class SmartRandom extends DispenserBase {
                 .set(long.class, dsp -> dsp.getFeature(Key.BASIC).nextLong())
                 .set(float.class, dsp -> (float) dsp.getFeature(Key.BASIC).nextDouble())
                 .set(double.class, dsp -> dsp.getFeature(Key.BASIC).nextDouble())
-                .set(char.class, dsp -> (char) dsp.getFeature(Key.BASIC).nextInt());
+                .set(char.class, dsp -> (char) dsp.getFeature(Key.BASIC).nextInt())
+                .set(String.class, dsp -> new String(dsp.any(char[].class)));
     }
 
     private static final class Stage implements Supplier<SmartRandom> {

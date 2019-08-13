@@ -22,12 +22,12 @@ public class SmartRandomTest {
         for (final Class<?> type : Arrays.asList(
                 boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class,
                 char.class, Boolean.class, Byte.class, Short.class, Integer.class, Long.class, Float.class,
-                Double.class, Character.class, TimeUnit.class, CaseFormat.class,
+                Double.class, Character.class, TimeUnit.class, CaseFormat.class, String.class,
 
                 boolean[].class, byte[].class, short[].class, int[].class, long[].class, float[].class,
                 double[].class, char[].class, Boolean[].class, Byte[].class, Short[].class, Integer[].class,
                 Long[].class, Float[].class, Double[].class, Character[].class, TimeUnit[].class,
-                CaseFormat[].class
+                CaseFormat[].class, String[].class
         )) {
             final Object any = random.any(type);
             assertType(type, any);

@@ -10,7 +10,7 @@ abstract class Methods
     static final Methods FAIL = new Methods() {
         @Override
         final <T> Function<Dispenser, T> get(final Type<T> type) {
-            throw new IllegalArgumentException("No method specified for " + type);
+            throw new IllegalArgumentException("No method specified for type <" + type + ">");
         }
     };
 
