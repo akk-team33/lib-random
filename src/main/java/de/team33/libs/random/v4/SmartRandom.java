@@ -6,8 +6,6 @@ import de.team33.libs.typing.v3.Type;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
-
 
 public final class SmartRandom extends DispenserBase {
 
