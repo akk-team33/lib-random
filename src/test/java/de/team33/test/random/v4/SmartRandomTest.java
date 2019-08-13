@@ -39,6 +39,16 @@ public class SmartRandomTest {
         // TODO
     }
 
+    @Test
+    public final void anyString() {
+        final SmartRandom random = SmartRandom.builder().build();
+        for (int i = 0; i < 100; ++i) {
+            final String result = random.any(String.class);
+            assertTrue(result, 0 < result.length());
+            assertTrue(result, 9 > result.length());
+        }
+    }
+
     private void assertType(final Class<?> type, final Object value) {
         assertType(type, type, value);
     }

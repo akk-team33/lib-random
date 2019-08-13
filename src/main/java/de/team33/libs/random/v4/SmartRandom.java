@@ -6,9 +6,13 @@ import de.team33.libs.typing.v3.Type;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 
 public final class SmartRandom extends DispenserBase {
+
+    private static final char[] DEFAULT_CHARACTERS =
+            "@ 0123456789-abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
 
     private SmartRandom(final Stage stage) {
         super(stage.methods, stage.features.get());
@@ -18,6 +22,7 @@ public final class SmartRandom extends DispenserBase {
         //noinspection NumericCastThatLosesPrecision
         return new Builder()
                 .setFeature(Key.BASIC, Random::new)
+                .setFeature(Key.CHARACTERS, () -> DEFAULT_CHARACTERS)
                 .set(boolean.class, dsp -> dsp.getFeature(Key.BASIC).nextBoolean())
                 .set(byte.class, dsp -> (byte) dsp.getFeature(Key.BASIC).nextInt())
                 .set(short.class, dsp -> (short) dsp.getFeature(Key.BASIC).nextInt())
@@ -25,7 +30,11 @@ public final class SmartRandom extends DispenserBase {
                 .set(long.class, dsp -> dsp.getFeature(Key.BASIC).nextLong())
                 .set(float.class, dsp -> (float) dsp.getFeature(Key.BASIC).nextDouble())
                 .set(double.class, dsp -> dsp.getFeature(Key.BASIC).nextDouble())
-                .set(char.class, dsp -> (char) dsp.getFeature(Key.BASIC).nextInt())
+                .set(char.class, dsp -> {
+                    final char[] characters = dsp.getFeature(Key.CHARACTERS);
+                    final Bounds bounds = new Bounds(characters.length);
+                    return characters[bounds.limited(dsp.any(int.class))];
+                })
                 .set(String.class, dsp -> new String(dsp.any(char[].class)));
     }
 
@@ -79,5 +88,6 @@ public final class SmartRandom extends DispenserBase {
     public static class Key<T> extends Unique implements Dispenser.Key<T> {
 
         public static final Key<Random> BASIC = new Key<>();
+        public static final Key<char[]> CHARACTERS = new Key<>();
     }
 }
