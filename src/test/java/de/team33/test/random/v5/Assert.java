@@ -25,11 +25,13 @@ public class Assert<T> {
         return new Assert<>(subject);
     }
 
+    public static void fail(final String message) {
+        throw new AssertionError(message);
+    }
+
     public final Assert<T> is(final Function<? super T, String> matcher) {
         Optional.ofNullable(matcher.apply(subject))
-                .ifPresent(message -> {
-                    throw new AssertionError(message);
-                });
+                .ifPresent(Assert::fail);
         return this;
     }
 }

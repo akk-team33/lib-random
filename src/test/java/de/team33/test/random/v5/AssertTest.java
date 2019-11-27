@@ -10,6 +10,11 @@ import static de.team33.test.random.v5.Assert.NULL;
 
 public class AssertTest {
 
+    @Test(expected = AssertionError.class)
+    public void fail() {
+        Assert.fail("message");
+    }
+
     @Test
     public void thatNull() {
         Assert.that(null)
