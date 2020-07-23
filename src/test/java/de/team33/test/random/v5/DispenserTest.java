@@ -1,11 +1,11 @@
 package de.team33.test.random.v5;
 
-import de.team33.libs.random.v5.SmartRandom;
+import de.team33.libs.random.v5.Dispenser;
 import org.junit.Test;
 
 import java.util.function.Function;
 
-public class SmartRandomTest {
+public class DispenserTest {
 
     private static final Function<Object, String> CONSISTENT_SUBJECT = subject -> {
         if (subject instanceof Subject) {
@@ -19,7 +19,7 @@ public class SmartRandomTest {
 
     @Test
     public final void anyUnknown() {
-        final SmartRandom random = SmartRandom.builder().build();
+        final Dispenser random = Dispenser.builder().build();
         try {
             final Unknown unknown = random.any(Unknown.class);
             Assert.fail("should fail but was <" + unknown + ">");
@@ -30,9 +30,9 @@ public class SmartRandomTest {
 
     @Test
     public final void anySubject() {
-        final SmartRandom random = SmartRandom.builder()
-                                              .addMethod(Subject.class, rnd -> new Subject())
-                                              .build();
+        final Dispenser random = Dispenser.builder()
+                                          .addMethod(Subject.class, rnd -> new Subject())
+                                          .build();
         final Subject subject = random.any(Subject.class);
         Assert.that(subject).is(CONSISTENT_SUBJECT);
     }
